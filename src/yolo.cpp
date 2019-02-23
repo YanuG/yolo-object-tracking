@@ -58,7 +58,7 @@ Yolo::Yolo(uint batchSize) :
     m_PluginFactory(new PluginFactory),
     m_TinyMaxpoolPaddingFormula(new YoloTinyMaxpoolPaddingFormula)
 {
-    std::string planFilePath = m_ModelsPath + m_NetworkType + "-" + m_Precision + "-batch"
+    std::string planFilePath = "/home/nvidia/catkin_ws/src/yolo_object_tracking/models/"  + m_NetworkType + "-" + m_Precision + "-batch"
         + std::to_string(m_BatchSize) + ".engine";
     // Create and cache the engine if not already present
     if (!fileExists(planFilePath))

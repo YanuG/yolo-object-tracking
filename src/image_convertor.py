@@ -8,7 +8,7 @@ from cv_bridge import CvBridge, CvBridgeError
 class image_convertor: 
 
     def __init__(self):
-        self.image_pub = rospy.Publisher("Jetson_Cam",Image)
+        self.image_pub = rospy.Publisher("Jetson_Camera",Image)
         self.bridge = CvBridge()
 
     def read_cam(self):
