@@ -22,7 +22,7 @@ find_package(CUDA REQUIRED)
 ## Find OpenCV
 find_package(OpenCV REQUIRED)
 
-# Find 
+# Find GNOME 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED glib-2.0)
 

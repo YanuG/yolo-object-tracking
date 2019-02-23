@@ -1,0 +1,10 @@
+{
+    "camera_input": "test",
+
+    "test": {
+        "pathToImage": "/home/nvidia/Downloads/trump.jpeg",
+        "displayPredicition": false,
+        "saveImageJPEG": true,
+        "displayInferenceTime": true
+    }
+}
