@@ -5,7 +5,8 @@
   * OpenCV 
       * Follow instructions in this [link](https://jkjung-avt.github.io/opencv3-on-tx2/) to install the correct version of OpenCV
   * ROS Kinetic 
-      * Follow instructions in this [link](https://www.jetsonhacks.com/2017/03/27/robot-operating-system-ros-nvidia-jetson-tx2/) to install the ROS on jetson 
+      * Follow instructions in this [link](https://www.jetsonhacks.com/2017/03/27/robot-operating-system-ros-nvidia-jetson-tx2/) to install the ROS on Jetson TX2 (Note: This works for Jetpack 3.3) 
+  * Tensorflow ```pip install --extra-index-url https://developer.download.nvidia.com/compute/redist/jp33 tensorflow-gpu```
 
 ## Running the Project
 
