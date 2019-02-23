@@ -2,5 +2,6 @@
 *.table 
 test/
 /include/yolo_object_tracking/build/
-/include/yolo_object_tracking/models/
 /include/yolo_object_tracking/calibration/
+models/
+*.jpeg
