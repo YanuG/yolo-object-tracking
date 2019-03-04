@@ -90,3 +90,4 @@ target_link_libraries(yolo_object_tracking  PRIVATE PRIVATE "stdc++fs"
   ${CUDNN_LIBRARY}
   CUDA_LIBS)
 
+

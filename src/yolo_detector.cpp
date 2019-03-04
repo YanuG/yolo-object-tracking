@@ -5,7 +5,7 @@
 #include "yolo_object_tracking/yolo.h"
 #include "yolo_object_tracking/yolov3.h"
 /* JSON header */
-#include "yolo_object_tracking/json.hpp"
+#include "utilities/json.hpp"
 /* OpenCV headers */
 #include <opencv/cv.h>
 #include <opencv2/core/core.hpp>
@@ -18,6 +18,7 @@
 #include <boost/bind.hpp>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
 
 /**
  *  Describes the return variable from interface 
@@ -27,20 +28,20 @@ typedef struct {
     double beginTimer;
     double endTimer;
 
-} InterfaceObj;
+} InterfaceInfo;
 
 /**
  * Converts the image type and sends the image to be anaylzed by the NN on the GPU. 
  * **/ 
-InterfaceObj interface(DsImage &dsImage, std::unique_ptr<Yolo>& inferNet) {
-    InterfaceObj interfaceObj; 
+InterfaceInfo interface(DsImage &dsImage, std::unique_ptr<Yolo>& inferNet) {
+    InterfaceInfo interfaceInfo; 
     cv::Mat trtInput = blobFromDsImages(dsImage, inferNet->getInputH(), inferNet->getInputW()); 
-    interfaceObj.beginTimer = ros::Time::now().toSec();
+    interfaceInfo.beginTimer = ros::Time::now().toSec();
     inferNet->doInference(trtInput.data);
-    interfaceObj.endTimer  = ros::Time::now().toSec();
+    interfaceInfo.endTimer  = ros::Time::now().toSec();
     auto binfo = inferNet->decodeDetections(0, dsImage.getImageHeight(), dsImage.getImageWidth());
-    interfaceObj.remaining = nonMaximumSuppression(inferNet->getNMSThresh(), binfo);
-    return interfaceObj; 
+    interfaceInfo.remaining = nonMaximumSuppression(inferNet->getNMSThresh(), binfo);
+    return interfaceInfo; 
 }
 
 /**
@@ -50,18 +51,17 @@ InterfaceObj interface(DsImage &dsImage, std::unique_ptr<Yolo>& inferNet) {
 void test(nlohmann::json congfigFile, std::unique_ptr<Yolo>& inferNet) {
     cv::Mat image = cv::imread(congfigFile["test"]["pathToImage"], CV_LOAD_IMAGE_COLOR);
     DsImage dsImage = DsImage(image, inferNet->getInputH(), inferNet->getInputW()); 
-    InterfaceObj interfaceObj =  interface(dsImage, inferNet);   
-    for (auto b : interfaceObj.remaining) {
+    InterfaceInfo interfaceInfo =  interface(dsImage, inferNet);   
+    for (auto b : interfaceInfo.remaining) {
         if (congfigFile["test"]["displayPredicition"])
             printPredictions(b, inferNet->getClassName(b.label));
         dsImage.addBBox(b, inferNet->getClassName(b.label));
     }
-    if (congfigFile["test"]["saveImageJPEG"]) {
-        std::string pathToOutputImage =  ros::package::getPath("yolo_object_tracking") + "/output";
-        dsImage.saveImageJPEG(pathToOutputImage);
+    if (congfigFile["test"]["displayImage"]) {
+       dsImage.showImage();
     } 
     if (congfigFile["test"]["displayInferenceTime"])
-        std::cout << "Inference time : " << interfaceObj.endTimer - interfaceObj.beginTimer  << " s" << std::endl;
+        std::cout << "Inference time : " << interfaceInfo.endTimer - interfaceInfo.beginTimer  << " s" << std::endl;
 }
 
 /**
@@ -69,11 +69,26 @@ void test(nlohmann::json congfigFile, std::unique_ptr<Yolo>& inferNet) {
 **/
 void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json congfigFile, std::unique_ptr<Yolo>* inferNet)
 {
-    //std::unique_ptr<Yolo> inferNet = data;
     cv::Mat image = cv_bridge::toCvShare(msg, "bgr8")->image;
+    cv::resize(image, image, cv::Size(384, 216));
+    cv::flip(image, image, 0);
+    cv::imshow("Image_Raw", image);
+    cv::waitKey(1);
     DsImage dsImage = DsImage(image, (*inferNet) -> getInputH(), (*inferNet) -> getInputW()); 
-    InterfaceObj interfaceObj =  interface(dsImage, (*inferNet));   
+    InterfaceInfo interfaceInfo =  interface(dsImage, (*inferNet));   
+
+    if (congfigFile["camera"]["displayInferenceTime"])
+        std::cout << "Inference time : " << interfaceInfo.endTimer - interfaceInfo.beginTimer  << " s" << std::endl; 
+    for (auto b : interfaceInfo.remaining) {
+        if (congfigFile["camera"]["displayPredicition"])
+            printPredictions(b, (*inferNet) ->getClassName(b.label));
+        dsImage.addBBox(b, (*inferNet)->getClassName(b.label));
+    }
+    if (congfigFile["test"]["displayImage"]) {
+       dsImage.showImage();
+    }
 }
+
 
 int main(int argc, char** argv)
 {
@@ -89,12 +104,14 @@ int main(int argc, char** argv)
     // inferface with YoloV3 NN
     std::unique_ptr<Yolo> inferNet = std::unique_ptr<Yolo>{new YoloV3(1)};
     // determine camera input
-    std::string image_imput = configFile["camera_input"];
-    if (image_imput == "test"){
+    std::string image_input = configFile["camera_input"];
+    ros::Subscriber sub;
+    if (!image_input.compare("test")){
         test(configFile, inferNet);
-    } else if (image_imput == "camera"){
-        ros::Subscriber sub = n.subscribe<sensor_msgs::Image> ("Jetson_Camera/image", 1, 
+    } else if (!image_input.compare("camera")){      
+	sub = n.subscribe<sensor_msgs::Image> ("/csi_cam_0/image_raw", 1, 
                                    boost::bind(&cameraCallback, _1, configFile, &inferNet));
-    } 
+    }  
+    ros::spin();
     return 0;
 }

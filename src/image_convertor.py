@@ -16,15 +16,7 @@ class ImageConverter:
         width = 416
         height = 416
         # open Jetson Camera
-        gst_str = ('nvcamerasrc ! '
-               'video/x-raw(memory:NVMM), '
-               'width=(int)2592, height=(int)1458, '
-               'format=(string)I420, framerate=(fraction)30/1 ! '
-               'nvvidconv ! '
-               'video/x-raw, width=(int){}, height=(int){}, '
-               'format=(string)BGRx ! '
-               'videoconvert ! appsink').format(width, height)
-        cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+        cap = cv2.VideoCapture("nvcamerasrc fpsRange='30.0 30.0' ! 'video/x-raw(memory:NVMM), width=(int)1920, height=(int)1080, format=(string)I420, framerate=(fraction)30/1' ! nvvidconv flip-method=2 ! 'video/x-raw, format=(string)I420' ! videoconvert ! 'video/x-raw, format=(string)BGR' ! appsink")
         # read image from camera
         if cap.isOpened():
             while True:

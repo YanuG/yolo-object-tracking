@@ -24,7 +24,7 @@ SOFTWARE.
 */
 
 #include "yolo_object_tracking/yolo.h"
-#include "yolo_object_tracking//network_config.h"
+#include "yolo_object_tracking/network_config.h"
 
 Yolo::Yolo(uint batchSize) :
     m_ModelsPath("/home/nvidia/catkin_ws/src/yolo_object_tracking/include/yolo_object_tracking/models"),

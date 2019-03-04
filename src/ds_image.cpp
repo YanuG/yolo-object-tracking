@@ -102,7 +102,7 @@ DsImage::DsImage(cv::Mat& image, const int& inputH, const int& inputW) :
     m_ImageName()
 {
     // remove path, change to frame number  
-    m_ImageName = "Test";
+    m_ImageName = "Output_Image";
     m_OrigImage = image;
 
     if (!m_OrigImage.data || m_OrigImage.cols <= 0 || m_OrigImage.rows <= 0)
@@ -169,7 +169,7 @@ void DsImage::showImage() const
 {
     cv::namedWindow(m_ImageName);
     cv::imshow(m_ImageName.c_str(), m_MarkedImage);
-    cv::waitKey(0);
+    cv::waitKey(1);
 }
 
 void DsImage::saveImageJPEG(const std::string& dirPath) const
