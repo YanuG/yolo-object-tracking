@@ -165,11 +165,11 @@ void DsImage::addBBox(BBoxInfo box, const std::string& labelName)
                 cv::FONT_HERSHEY_COMPLEX_SMALL, 0.5, cv::Scalar(255, 255, 255), 1, CV_AA);
 }
 
-void DsImage::showImage() const
+void DsImage::showImage(int time) const
 {
     cv::namedWindow(m_ImageName);
     cv::imshow(m_ImageName.c_str(), m_MarkedImage);
-    cv::waitKey(1);
+    cv::waitKey(time);  
 }
 
 void DsImage::saveImageJPEG(const std::string& dirPath) const

@@ -41,7 +41,7 @@ public:
     cv::Mat getOriginalImage() const { return m_OrigImage; }
     std::string getImageName() const { return m_ImageName; }
     void addBBox(BBoxInfo box, const std::string& labelName);
-    void showImage() const;
+    void showImage(int time) const;
     void saveImageJPEG(const std::string& dirPath) const;
 
 private:

@@ -9,11 +9,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  image_transport
   roscpp
   rospy
   sensor_msgs
-  std_msgs
+  std_msgs  
+  message_generation
+  roslib
 )
 
 ## Find CUDA 
@@ -51,6 +52,25 @@ find_library(CUDNN_LIBRARY cudnn
 find_package_handle_standard_args(
     CUDNN DEFAULT_MSG CUDNN_INCLUDE_DIR CUDNN_LIBRARY)
 
+## get all messages in msg folder:
+file(GLOB messages
+        "msg/*.msg"
+        )
+## strip path and add:
+foreach(message ${messages})
+    get_filename_component(m ${message} NAME)
+    add_message_files(
+            FILES
+            ${m}
+    )
+endforeach(message ${messages})
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
@@ -62,10 +82,10 @@ include_directories(
   ${GLIB_INCLUDE_DIRS}
 )
 
-catkin_package(
+catkin_package( 
    INCLUDE_DIRS include
    LIBRARIES ${yolo_object_tracking}
-   CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs
+   CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs message_runtime
   )
 
 ## Gather all files in src directory
@@ -89,5 +109,3 @@ target_link_libraries(yolo_object_tracking  PRIVATE PRIVATE "stdc++fs"
   ${TENSORRT_LIBRARY}
   ${CUDNN_LIBRARY}
   CUDA_LIBS)
-
-

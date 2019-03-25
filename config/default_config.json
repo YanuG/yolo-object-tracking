@@ -4,12 +4,13 @@
     "test": {
         "pathToImage": "/home/nvidia/Downloads/trump.jpeg",
         "displayPredicition": true,
-        "displayImage": true,
         "displayInferenceTime": true
     },
     "camera":{
-        "displayInferenceTime": true,
-	"displayImage": true,
-	"displayPredicition": true
+        "showRawImage": false,
+        "displayInferenceTime": false,
+        "displayPredicition": false,
+        "displayDetection": true,
+        "topicName": "/csi_cam_0/image_raw"
     }
 }
