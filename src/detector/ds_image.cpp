@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 *
 */
-#include "yolo_object_tracking/ds_image.h"
+#include "detector/ds_image.h"
 #include <experimental/filesystem>
 
 DsImage::DsImage() :

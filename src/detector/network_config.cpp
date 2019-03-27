@@ -23,7 +23,7 @@ SOFTWARE.
 *
 */
 
-#include "yolo_object_tracking//network_config.h"
+#include "detector//network_config.h"
 
 namespace config
 {

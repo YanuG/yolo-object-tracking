@@ -90,7 +90,7 @@ catkin_package(
   )
 
 ## Gather all files in src directory
-file(GLOB SOURCES "src/*.cpp" )
+file(GLOB SOURCES "src/detector/*.cpp" )
 
 add_executable(yolo_object_tracking ${SOURCES})
 
@@ -99,7 +99,7 @@ add_definitions(${GLIB_CFLAGS_OTHER})
 ## Generate library from .cu file
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -gencode arch=compute_62,code=sm_62)
 SET(LIB_TYPE STATIC) 
-CUDA_ADD_LIBRARY(CUDA_LIBS ${LIB_TYPE} src/kernels.cu )
+CUDA_ADD_LIBRARY(CUDA_LIBS ${LIB_TYPE} src/detector/kernels.cu )
 
 ## Link all libraries to code 
 target_link_libraries(yolo_object_tracking  PRIVATE PRIVATE "stdc++fs" 

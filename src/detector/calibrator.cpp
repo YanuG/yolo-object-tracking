@@ -23,7 +23,7 @@
 // *
 // */
 
-#include "yolo_object_tracking/calibrator.h"
+#include "detector/calibrator.h"
 #include <fstream>
 #include <iostream>
 #include <iterator>

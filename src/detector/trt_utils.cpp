@@ -23,7 +23,7 @@ SOFTWARE.
 *
 */
 
-#include "yolo_object_tracking/trt_utils.h"
+#include "detector/trt_utils.h"
 
 #include <experimental/filesystem>
 #include <fstream>

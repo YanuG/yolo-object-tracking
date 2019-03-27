@@ -1,9 +1,9 @@
 /* Yolo Detector headers */
-#include "yolo_object_tracking/ds_image.h"
-#include "yolo_object_tracking/network_config.h"
-#include "yolo_object_tracking/trt_utils.h"
-#include "yolo_object_tracking/yolo.h"
-#include "yolo_object_tracking/yolov3.h"
+#include "detector/ds_image.h"
+#include "detector/network_config.h"
+#include "detector/trt_utils.h"
+#include "detector/yolo.h"
+#include "detector/yolov3.h"
 /* JSON header */
 #include "utilities/json.hpp"
 /* OpenCV headers */
@@ -14,11 +14,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 /* ROS headers */
 #include "ros/ros.h"
-#include <ros/package.h>
-#include <boost/bind.hpp>
-#include <sensor_msgs/Image.h>
 #include "yolo_object_tracking/BoundingBoxesVector.h"
 #include <cv_bridge/cv_bridge.h>
+#include <ros/package.h>
+#include <sensor_msgs/Image.h>
 
 // header sequence number
 volatile int counter = 0;
@@ -63,6 +62,7 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
         data.xmin = b.box.x1;  data.ymin = b.box.y1;  data.xmax = b.box.x2;  data.ymax = b.box.y2;  data.id = (*inferNet)->getClassName(b.label);
         boxMsg.boundingBoxesVector.push_back(data);
         if (configFile["drawOnImage"])
+            // TODO - put in draw.py
             dsImage.addBBox(b, (*inferNet)->getClassName(b.label));
     }
     // convert image as a ROS message (sensor_msgs/Image)
@@ -75,10 +75,9 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
     // TODO remove display - put in draw.py 
     if (configFile["displayDetection"])
         dsImage.showImage(1);
-
+    // Display time it take to tranfer image to GPU, anaylsis it and return image 
     if (configFile["displayInferenceTime"])
         std::cout << "Inference time : " << endTimer - beginTimer  << " s" << std::endl; 
-
     // publish boundBoxesVector msg
     pub.publish(boxMsg);
 }

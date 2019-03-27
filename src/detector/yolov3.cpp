@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 *
 */
-#include "yolo_object_tracking/yolov3.h"
-#include "yolo_object_tracking/network_config.h"
+#include "detector/yolov3.h"
+#include "detector/network_config.h"
 
 YoloV3::YoloV3(uint batchSize, const std::string path) :
     Yolo(batchSize, path),

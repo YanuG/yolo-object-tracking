@@ -23,8 +23,8 @@ SOFTWARE.
 *
 */
 
-#include "yolo_object_tracking/plugin_factory.h"
-#include "yolo_object_tracking/trt_utils.h"
+#include "detector/plugin_factory.h"
+#include "detector/trt_utils.h"
 
 PluginFactory::PluginFactory() : m_ReorgLayer{nullptr}, m_RegionLayer{nullptr}
 {

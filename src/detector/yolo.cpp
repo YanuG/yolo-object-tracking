@@ -23,8 +23,8 @@ SOFTWARE.
 *
 */
 
-#include "yolo_object_tracking/yolo.h"
-#include "yolo_object_tracking/network_config.h"
+#include "detector/yolo.h"
+#include "detector/network_config.h"
 
 Yolo::Yolo(uint batchSize, const std::string path) :
     m_ModelsPath( path + config::kMODELS_PATH),
