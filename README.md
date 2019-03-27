@@ -29,7 +29,7 @@
 
 1. Enable maximum clock speed. This is done in the home directory ``` ./jetson-clocks.sh```
 
-2.  Run launch file ```roslaunch yolo_object_tracking```
+2.  Run launch file ```roslaunch yolo_object_tracking yolo_object_tracking```
 
 ## Current Results
 
