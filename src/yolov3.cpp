@@ -25,8 +25,8 @@ SOFTWARE.
 #include "yolo_object_tracking/yolov3.h"
 #include "yolo_object_tracking/network_config.h"
 
-YoloV3::YoloV3(uint batchSize) :
-    Yolo(batchSize),
+YoloV3::YoloV3(uint batchSize, const std::string path) :
+    Yolo(batchSize, path),
     m_Stride1(config::yoloV3::kSTRIDE_1),
     m_Stride2(config::yoloV3::kSTRIDE_2),
     m_Stride3(config::yoloV3::kSTRIDE_3),

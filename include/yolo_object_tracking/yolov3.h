@@ -35,7 +35,7 @@ SOFTWARE.
 class YoloV3 : public Yolo
 {
 public:
-    explicit YoloV3(const uint batchSize);
+    explicit YoloV3(const uint batchSize, const std::string path);
     void doInference(const unsigned char* input) override;
     std::vector<BBoxInfo> decodeDetections(const int& imageIdx, const int& imageH,
                                            const int& imageW) override;

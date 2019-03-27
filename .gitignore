@@ -1,7 +1,2 @@
-*.engine
-*.table 
-test/
-/include/yolo_object_tracking/build/
-/include/yolo_object_tracking/calibration/
 models/
-*.jpeg
+data/

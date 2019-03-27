@@ -1,4 +1,4 @@
 <launch>
     <include file="$(find jetson_csi_cam)/jetson_csi_cam.launch"/>
-    <node name="tracking" pkg="yolo_object_tracking" type="yolo_object_tracking"/>
+    <node name="tracking" pkg="yolo_object_tracking" type="yolo_object_tracking" output="screen" />
 </launch>

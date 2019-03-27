@@ -54,7 +54,7 @@ public:
     virtual ~Yolo();
 
 protected:
-    explicit Yolo(const uint batchSize);
+    explicit Yolo(const uint batchSize, const std::string path);
     const std::string m_ModelsPath;
     const std::string m_ConfigFilePath;
     const std::string m_TrainedWeightsPath;

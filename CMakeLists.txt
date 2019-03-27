@@ -69,6 +69,7 @@ endforeach(message ${messages})
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
 )
 
 ## Specify additional locations of header files

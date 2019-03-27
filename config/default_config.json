@@ -1,16 +1,10 @@
 {
-    "camera_input": "camera",
 
-    "test": {
-        "pathToImage": "/home/nvidia/Downloads/trump.jpeg",
-        "displayPredicition": true,
-        "displayInferenceTime": true
-    },
-    "camera":{
-        "showRawImage": false,
-        "displayInferenceTime": false,
-        "displayPredicition": false,
-        "displayDetection": true,
-        "topicName": "/csi_cam_0/image_raw"
-    }
+    "showRawImage": false,
+    "displayInferenceTime": false,
+    "displayPredicition": false,
+    "displayDetection": true,
+    "drawOnImage": true,
+    "topicName": "/csi_cam_0/image_raw"
+    
 }

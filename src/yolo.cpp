@@ -26,14 +26,12 @@ SOFTWARE.
 #include "yolo_object_tracking/yolo.h"
 #include "yolo_object_tracking/network_config.h"
 
-Yolo::Yolo(uint batchSize) :
-    m_ModelsPath("/home/nvidia/catkin_ws/src/yolo_object_tracking/include/yolo_object_tracking/models"),
-    m_ConfigFilePath("/home/nvidia/deepstream-plugins/data/yolov3.cfg"),
-    m_TrainedWeightsPath("/home/nvidia/deepstream-plugins/data/yolov3.weights"),
-    m_NetworkType("yolov3"),
-    m_CalibImagesFilePath("/home/nvidia/deepstream-plugins/data/"),
-    m_CalibTableFilePath("/home/nvidia/catkin_ws/src/yolo_object_tracking/include/yolo_object_tracking/calibration/yolov3-calibration.table"),
-    m_Precision("kFLOAT"),
+Yolo::Yolo(uint batchSize, const std::string path) :
+    m_ModelsPath( path + config::kMODELS_PATH),
+    m_ConfigFilePath(path + config::kYOLO_CONFIG_PATH),
+    m_TrainedWeightsPath(path + config::kTRAINED_WEIGHTS_PATH),
+    m_NetworkType(config::kNETWORK_TYPE),
+    m_Precision(config::kPRECISION),
     m_InputBlobName(config::kINPUT_BLOB_NAME),
     m_InputH(config::kINPUT_H),
     m_InputW(config::kINPUT_W),
@@ -60,6 +58,7 @@ Yolo::Yolo(uint batchSize) :
 {
     std::string planFilePath = "/home/nvidia/catkin_ws/src/yolo_object_tracking/models/"  + m_NetworkType + "-" + m_Precision + "-batch"
         + std::to_string(m_BatchSize) + ".engine";
+    std::cout << path + config::kTRAINED_WEIGHTS_PATH << std::endl;
     // Create and cache the engine if not already present
     if (!fileExists(planFilePath))
     {
@@ -71,19 +70,6 @@ Yolo::Yolo(uint batchSize) :
         if (m_Precision == "kFLOAT")
         {
             createYOLOEngine(m_BatchSize, m_ConfigFilePath, m_TrainedWeightsPath, planFilePath);
-        }
-        else if (m_Precision == "kINT8")
-        {
-            Int8EntropyCalibrator calibrator(m_BatchSize, m_CalibImagesFilePath,
-                                             m_CalibTableFilePath, m_InputSize, m_InputH, m_InputW,
-                                             m_InputBlobName);
-            createYOLOEngine(m_BatchSize, m_ConfigFilePath, m_TrainedWeightsPath, planFilePath,
-                             nvinfer1::DataType::kINT8, &calibrator);
-        }
-        else if (m_Precision == "kHALF")
-        {
-            createYOLOEngine(m_BatchSize, m_ConfigFilePath, m_TrainedWeightsPath, planFilePath,
-                             nvinfer1::DataType::kHALF, nullptr);
         }
         else
         {
@@ -140,6 +126,7 @@ void Yolo::createYOLOEngine(const int batchSize, const std::string yoloConfigPat
     std::vector<nvinfer1::Weights> trtWeights;
     int weightPtr = 0;
     int channels = m_InputC;
+    // builds engine with network definition 
     nvinfer1::IBuilder* builder = nvinfer1::createInferBuilder(m_Logger);
     nvinfer1::INetworkDefinition* network = builder->createNetwork();
 
@@ -149,7 +136,7 @@ void Yolo::createYOLOEngine(const int batchSize, const std::string yoloConfigPat
         std::cout << "Platform doesn't support this precision." << std::endl;
         assert(0);
     }
-
+    //Add the Input layer to the network, with the input dimensions
     nvinfer1::ITensor* data = network->addInput(m_InputBlobName.c_str(), nvinfer1::DataType::kFLOAT,
                                                 nvinfer1::DimsCHW{static_cast<int>(m_InputC),
                                                                   static_cast<int>(m_InputH),

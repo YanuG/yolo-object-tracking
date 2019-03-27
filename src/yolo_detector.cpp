@@ -20,85 +20,66 @@
 #include "yolo_object_tracking/BoundingBoxesVector.h"
 #include <cv_bridge/cv_bridge.h>
 
+// header sequence number
+volatile int counter = 0;
 
 /**
- *  Describes the return variable from interface 
- **/
-typedef struct {
-    std::vector<BBoxInfo> remaining;
-    double beginTimer;
-    double endTimer;
-
-} InterfaceObj;
-
-
-/**
- * Converts the image type and sends the image to be anaylzed by the NN on the GPU. 
- * **/ 
-InterfaceObj interface(DsImage &dsImage, std::unique_ptr<Yolo>& inferNet) {
-    InterfaceObj interfaceObj; 
-    cv::Mat trtInput = blobFromDsImages(dsImage, inferNet->getInputH(), inferNet->getInputW()); 
-    interfaceObj.beginTimer = ros::Time::now().toSec();
-    inferNet->doInference(trtInput.data);
-    interfaceObj.endTimer  = ros::Time::now().toSec();
-    auto binfo = inferNet->decodeDetections(0, dsImage.getImageHeight(), dsImage.getImageWidth());
-    interfaceObj.remaining = nonMaximumSuppression(inferNet->getNMSThresh(), binfo);
-    return interfaceObj; 
-}
-
-/**
- *  Used to test an image. This function will display predictions, save the image with prediciton
- *  boxes drawn on it and display time for inference. 
- **/
-void test(nlohmann::json configFile, std::unique_ptr<Yolo>& inferNet) {
-    cv::Mat image = cv::imread(configFile["test"]["pathToImage"], CV_LOAD_IMAGE_COLOR);
-    DsImage dsImage = DsImage(image, inferNet->getInputH(), inferNet->getInputW()); 
-    InterfaceObj interfaceObj =  interface(dsImage, inferNet);   
-    for (auto b : interfaceObj.remaining) {
-        if (configFile["test"]["displayPredicition"])
-            printPredictions(b, inferNet->getClassName(b.label));
-        dsImage.addBBox(b, inferNet->getClassName(b.label));
-    }
-    if (configFile["test"]["displayPredicition"])
-        dsImage.showImage(5000);
-
-    if (configFile["test"]["displayInferenceTime"])
-        std::cout << "Inference time : " << interfaceObj.endTimer - interfaceObj.beginTimer  << " s" << std::endl;
-}
-
-/**
- * Callback function for Jetson Camera
+ * Callback function for Jetson csi cam
 **/
 void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json configFile, std::unique_ptr<Yolo>* inferNet, ros::Publisher pub)
-{
+{   
+    // increament sequence 
+    counter ++;
     cv::Mat orginalImage = cv_bridge::toCvShare(msg, "bgr8")->image;
     cv::Mat image;
-    cv::resize(orginalImage, orginalImage, cv::Size(540, 540)); 
+    cv::resize(orginalImage, orginalImage, cv::Size(416, 416)); 
+    // currently image is reotated from camera - need to fix that 
     cv::flip(orginalImage, image, 0);
-       if (configFile["camera"]["showRawImage"]){
+       if (configFile["showRawImage"]){
          cv::imshow("image_raw", image);
          cv::waitKey(1);
      }
+    // resize image
     DsImage dsImage = DsImage(image, (*inferNet) -> getInputH(), (*inferNet) -> getInputW()); 
-    InterfaceObj interfaceObj =  interface(dsImage, (*inferNet)); 
-
+    // covert image to a trtInput
+    cv::Mat trtInput = blobFromDsImages(dsImage, (*inferNet)->getInputH(), (*inferNet)->getInputW()); 
+    double beginTimer = ros::Time::now().toSec();
+    // send image to the GPU
+    (*inferNet)->doInference(trtInput.data);
+    double endTimer  = ros::Time::now().toSec();
+    //decode results
+    auto binfo = (*inferNet)->decodeDetections(0, dsImage.getImageHeight(), dsImage.getImageWidth());
+    std::vector<BBoxInfo> remaining = nonMaximumSuppression((*inferNet)->getNMSThresh(), binfo);
+    // create ROS messages 
     yolo_object_tracking::BoundingBoxes data;
     yolo_object_tracking::BoundingBoxesVector boxMsg;
-
-    for (auto b : interfaceObj.remaining) {
-        if (configFile["camera"]["displayPredicition"])
+    sensor_msgs::Image img_msg;
+    cv_bridge::CvImage img_bridge;
+    // loop throught detections 
+    for (auto b : remaining) {
+        if (configFile["displayPredicition"])
             printPredictions(b, (*inferNet)->getClassName(b.label));
+        // save bounding box and class name into ros message BoundingBoxes
         data.xmin = b.box.x1;  data.ymin = b.box.y1;  data.xmax = b.box.x2;  data.ymax = b.box.y2;  data.id = (*inferNet)->getClassName(b.label);
         boxMsg.boundingBoxesVector.push_back(data);
-        dsImage.addBBox(b, (*inferNet)->getClassName(b.label));
+        if (configFile["drawOnImage"])
+            dsImage.addBBox(b, (*inferNet)->getClassName(b.label));
     }
-
-    if (configFile["camera"]["displayDetection"])
+    // convert image as a ROS message (sensor_msgs/Image)
+    std_msgs::Header header; 
+    header.seq = counter; 
+    header.stamp = ros::Time::now(); 
+    img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, image);
+    img_bridge.toImageMsg(img_msg);
+    boxMsg.image =  img_msg;    
+    // TODO remove display - put in draw.py 
+    if (configFile["displayDetection"])
         dsImage.showImage(1);
 
-    if (configFile["camera"]["displayInferenceTime"])
-        std::cout << "Inference time : " << interfaceObj.endTimer - interfaceObj.beginTimer  << " s" << std::endl;  
+    if (configFile["displayInferenceTime"])
+        std::cout << "Inference time : " << endTimer - beginTimer  << " s" << std::endl; 
 
+    // publish boundBoxesVector msg
     pub.publish(boxMsg);
 }
 
@@ -107,23 +88,20 @@ int main(int argc, char** argv)
     // create a ROS handle 
     ros::init(argc, argv, "yolo_detector");
     ros::NodeHandle nh;
-    // sets a path to the configuration file 
-    nlohmann::json configFile;
-    std::string pathToJsonFile =  ros::package::getPath("yolo_object_tracking") + "/config/default_config.json";
+    // Get current dir
+    std::string pathToDir = ros::package::getPath("yolo_object_tracking");
+    // Sets a path to the configuration file 
+    std::string pathToJsonFile =  pathToDir + "/config/default_config.json";
     std::ifstream i(pathToJsonFile);
+    nlohmann::json configFile;
     i >> configFile;
     // inferface with YoloV3 NN
-    std::unique_ptr<Yolo> inferNet = std::unique_ptr<Yolo>{new YoloV3(1)};
-    // determine camera input
-    std::string image_input = configFile["camera_input"];
-    ros::Subscriber sub;
+    std::unique_ptr<Yolo> inferNet = std::unique_ptr<Yolo>{new YoloV3(1 , pathToDir)};
+    // create publishers and subscriers
     ros::Publisher pub = nh.advertise<yolo_object_tracking::BoundingBoxesVector>("/boundingBoxes", 1);
-    if (image_input == "test") {
-        test(configFile, inferNet);
-    } else if (image_input == "camera"){
-        sub = nh.subscribe<sensor_msgs::Image>(configFile["camera"]["topicName"], 1, 
-                boost::bind(&cameraCallback, _1, configFile, &inferNet, pub));
-    } 
+    ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(configFile["topicName"], 1, 
+            boost::bind(&cameraCallback, _1, configFile, &inferNet, pub));
+     
     ros::spin();
     return 0;
 }
