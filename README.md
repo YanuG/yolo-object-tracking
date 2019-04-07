@@ -23,7 +23,7 @@
 
 4. Clone the following repo
 
-5. Run ```catkin_build```
+5. Run ```catkin_make```
 
 ## Running the Project
 
