@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-from __future__ import with_statement
-from __future__ import division
-from __future__ import absolute_import
 import multiprocessing
 import cv2
 import numpy as np
@@ -13,14 +10,12 @@ import shapely.geometry
 import rospy 
 from yolo_object_tracking.msg import BoundingBoxesVector
 #for reading from config
-import ConfigParser
-from itertools import izip
-from io import open
+import configparser
 
 
 class Tracker(multiprocessing.Process):
     def __init__(self, idx, inputq, outputq, stop_event, settings):
-        u"""
+        """
         :param list idx: integer list to distinguish objects [type,sub-type,index]
         :param multiprocessing.Manager.Queue() inputq: each element is a dictionary with keys,
         'original_image','frame_id',['boxes'],['scores']['classes']
@@ -41,8 +36,8 @@ class Tracker(multiprocessing.Process):
         <tracker_type> : Possible values, 'csrt', 'kcf','boosting','mil','tld','medianflow','mosse'
         <class_names> : List of class names
         """
-        multiprocessing.Process.__init__(self, name=u'tracker_'+unicode(idx))
-        self.name = u'tracker_'+unicode(idx)
+        multiprocessing.Process.__init__(self, name='tracker_'+str(idx))
+        self.name = 'tracker_'+str(idx)
         self.idx = idx
         self.inputQ = inputq
         self.outputQ = outputq
@@ -50,20 +45,20 @@ class Tracker(multiprocessing.Process):
         self.settings = settings
         self.currentInputDict = {}
         self.tracked_boxes = []
-        (major, minor) = cv2.__version__.split(u".")[:2]
+        (major, minor) = cv2.__version__.split(".")[:2]
         self.OPENCV_OBJECT_TRACKERS = {
-            u"csrt": cv2.TrackerCSRT_create,
-            u"kcf": cv2.TrackerKCF_create,
-            u"boosting": cv2.TrackerBoosting_create,
-            u"mil": cv2.TrackerMIL_create,
-            u"tld": cv2.TrackerTLD_create,
-            u"medianflow": cv2.TrackerMedianFlow_create,
-            u"mosse": cv2.TrackerMOSSE_create,
-            u"goturn": cv2.TrackerGOTURN_create
+            "csrt": cv2.TrackerCSRT_create,
+            "kcf": cv2.TrackerKCF_create,
+            "boosting": cv2.TrackerBoosting_create,
+            "mil": cv2.TrackerMIL_create,
+            "tld": cv2.TrackerTLD_create,
+            "medianflow": cv2.TrackerMedianFlow_create,
+            "mosse": cv2.TrackerMOSSE_create,
+            "goturn": cv2.TrackerGOTURN_create
         }
         # self.tracker = self.OPENCV_OBJECT_TRACKERS.get(self.settings['tracker'], cv2.TrackerKCF_create)()
         # self.multi_trackers = cv2.MultiTracker_create()
-        self.class_names = self.settings[u'class_names']
+        self.class_names = self.settings['class_names']
         # self.ctracker = CentroidTracker(maxDisappeared=30)
 
         # From : https://www.pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/
@@ -75,61 +70,61 @@ class Tracker(multiprocessing.Process):
         self.objects = OrderedDict()
         self.objectMetaData = OrderedDict()
         self.disappeared = OrderedDict()
-        self.track_within_polygon = self.settings.get(u'track_within_polygon', False)
-        self.tracked_polygon = shapely.geometry.polygon.Polygon(self.settings[u'tracked_polygon'])
+        self.track_within_polygon = self.settings.get('track_within_polygon', False)
+        self.tracked_polygon = shapely.geometry.polygon.Polygon(self.settings['tracked_polygon'])
 
         # store the number of maximum consecutive frames a given
         # object is allowed to be marked as "disappeared" until we
         # need to deregister the object from tracking
-        self.maxDisappeared = self.settings.get(u'obj_disappear_thresh', 60)
-        self.obj_teleport_threshold = self.settings.get(u'obj_teleport_threshold', 0.4)
+        self.maxDisappeared = self.settings.get('obj_disappear_thresh', 60)
+        self.obj_teleport_threshold = self.settings.get('obj_teleport_threshold', 0.4)
         # add this to the init function 
-        rospy.init_node(u'tracker', anonymous=True)
+        rospy.init_node('tracker', anonymous=True)
         # when a message is sent to this topic it will call the update method 
-        rospy.Subscriber(u"/boundingBoxes", BoundingBoxesVector, update)
+        rospy.Subscriber("/boundingBoxes", BoundingBoxesVector, update)
 
     def run(self):
-        print u'STARTING Tracker'
+        print('STARTING Tracker')
         while not self.stopEvent.is_set():
             # print('Tracker waiting for input')
             while not self.inputQ.empty():
                 # print(f'Tracker got input {self.inputQ.qsize()}')
                 if self.inputQ.qsize() > 10:
-                    print u'Input queue size is: {self.inputQ.qsize()}'
+                    print('Input queue size is: {self.inputQ.qsize()}')
                     # Do something about this if this queue size is too large.
                     # This could be because this class can't process data in the same speed
                     # that it gets them. Maybe use only the latest set of data and discard
                     # the rest.
                     # EG:
-                    print u'Clearing queue...'
+                    print('Clearing queue...')
                     while self.inputQ.qsize() > 1: #or 1 if inputQ.get() is called again
                         self.currentInputDict = self.inputQ.get()
                 self.currentInputDict = self.inputQ.get()
                 self.tracked_boxes = []
                 # mulithtreading
-                for i, c in reversed(list(enumerate(self.currentInputDict[u'classes']))):
+                for i, c in reversed(list(enumerate(self.currentInputDict['classes']))):
                     if c != self.idx[1]:  # idx[1] is the class type to track
                         continue
-                    box = self.currentInputDict[u'boxes'][i]
+                    box = self.currentInputDict['boxes'][i]
                     top, left, bottom, right = box
                     ctbox = np.asarray([left, top, right, bottom])
-                    self.tracked_boxes.append(ctbox.astype(u"int"))
+                    self.tracked_boxes.append(ctbox.astype("int"))
                     #add ROS message (for loop to get ROS, add/minus 50 for box)
 
                 #for i in reversed(list(enumerate(self.currentInputDict['classes']))):
                 #if its from left
-                    box = self.currentInputDict[u'boxes'][i]
+                    box = self.currentInputDict['boxes'][i]
                     top, left, bottom, right = box
                     ctbox = np.asarray    
                 objects, total_tracked = self.update(self.tracked_boxes)
-                classes = self.currentInputDict[u'classes']
-                frameid = self.currentInputDict[u'frame_id']
+                classes = self.currentInputDict['classes']
+                frameid = self.currentInputDict['frame_id']
                 # print(f'Output from : {self.idx} , {frameid} = {classes}')
                 # for class_member in objects:
                 #     print(f'class_member: {class_member}')
-                outputDict = {u'idx': self.idx, u'frame_id': frameid,
-                              u'boxes': [], u'scores': [], u'classes': [],
-                              u'objects': objects, u'total_items': total_tracked}  # ##########TEMP##########
+                outputDict = {'idx': self.idx, 'frame_id': frameid,
+                              'boxes': [], 'scores': [], 'classes': [],
+                              'objects': objects, 'total_items': total_tracked}  # ##########TEMP##########
                 self.outputQ.put(outputDict)
         # Do cleanup (if any)
 
@@ -137,14 +132,14 @@ class Tracker(multiprocessing.Process):
         # when registering an object we use the next available object
         # ID to store the centroid
         self.objects[self.nextObjectID] = centroid
-        tracker = self.OPENCV_OBJECT_TRACKERS.get(self.settings[u'tracker'], cv2.TrackerKCF_create)()
+        tracker = self.OPENCV_OBJECT_TRACKERS.get(self.settings['tracker'], cv2.TrackerKCF_create)()
         # print(f"Image type: {type(self.currentInputDict['original_image'])}")
 
         roiRect = self.rects_to_roi(rect)
         # (r1,r2,r3,r4) = roiRect
         roituple = (roiRect[0],roiRect[1],roiRect[2],roiRect[3])
         # print(f"ROI Rect: {roituple}, type: {type(roituple)}")
-        tracker.init(self.currentInputDict[u'original_image'], roituple)
+        tracker.init(self.currentInputDict['original_image'], roituple)
         # self.multi_trackers.add(tracker, self.currentInputDict['original_image'], self.rects_to_roi(rect))
         self.objectMetaData[self.nextObjectID] = [rect, tracker]
         # print(f"metadata updated. Metadata: {self.objectMetaData}")
@@ -187,7 +182,7 @@ class Tracker(multiprocessing.Process):
             return self.objects, self.nextObjectID
 
         # initialize an array of input centroids for the current frame
-        inputCentroids = np.zeros((len(rects.boundingBoxesVector), 2), dtype=u"int")
+        inputCentroids = np.zeros((len(rects.boundingBoxesVector), 2), dtype="int")
 
         # loop over the bounding box rectangles
         for (i, (startX, startY, endX, endY)) in enumerate(rects.boundingBoxesVector):
@@ -200,7 +195,7 @@ class Tracker(multiprocessing.Process):
         # centroids and register each of them
 
         if len(self.objects) == 0:
-            for i in xrange(0, len(inputCentroids)):
+            for i in range(0, len(inputCentroids)):
                 self.register(inputCentroids[i], rects.boundingBoxesVector[i])
 
         # otherwise, are are currently tracking objects so we need to
@@ -237,7 +232,7 @@ class Tracker(multiprocessing.Process):
 
             # loop over the combination of the (row, column) index
             # tuples
-            for (row, col) in izip(rows, cols):
+            for (row, col) in zip(rows, cols):
                 # if we have already examined either the row or
                 # column value before, ignore it
                 if row in usedRows or col in usedCols:
@@ -249,7 +244,7 @@ class Tracker(multiprocessing.Process):
                 objectID = objectIDs[row]
                 x1, y1 = self.objects[objectID][0], self.objects[objectID][1]
                 x2, y2 = inputCentroids[col][0],inputCentroids[col][1]
-                height, width, channels = self.currentInputDict[u'original_image'].shape
+                height, width, channels = self.currentInputDict['original_image'].shape
                 # print(f'height: {height}, width: {width}, ch: {channels}')
                 if math.hypot(x2-x1, y2-y1) < self.obj_teleport_threshold*(height+width)*0.5:
                     self.objects[objectID] = inputCentroids[col]
@@ -262,8 +257,8 @@ class Tracker(multiprocessing.Process):
 
             # compute both the row and column index we have NOT yet
             # examined
-            unusedRows = set(xrange(0, distance_mat.shape[0])).difference(usedRows)
-            unusedCols = set(xrange(0, distance_mat.shape[1])).difference(usedCols)
+            unusedRows = set(range(0, distance_mat.shape[0])).difference(usedRows)
+            unusedCols = set(range(0, distance_mat.shape[1])).difference(usedCols)
 
             # in the event that the number of object centroids is
             # equal or greater than the number of input centroids
@@ -297,51 +292,30 @@ class Tracker(multiprocessing.Process):
     def rects_to_roi(self, rect):
         left, top, right, bottom = rect
         roibox = np.asarray([(left+right)/2, (top+bottom)/2, abs(right-left), abs(bottom-top)])
-        return roibox.astype(u"int")
+        return roibox.astype("int")
 
-if __name__ == u'__main__':
-    configparser = ConfigParser.ConfigParser()
-    ConfigParser.read(u'config.ini')
-    config = ConfigParser[ConfigParser[u'DEFAULT'][u'config_to_use']]
+if __name__ == '__main__':
     manager = multiprocessing.Manager()
-    num_feeds = 1
-
-    with open(config[u'yolo_classes_fname']) as cf:
-        classNames = cf.readlines()
-    classNames = [c.strip() for c in classNames]
-    yolo_classes_to_track = json.loads(config.get(u'yolo_classes_to_track'))
-    trackerSettings = {u'tracker': config.get(u'tracker_to_use', u'kcf'),
-                                u'class_names': class_names,
-                                u'obj_disappear_thresh': config.getint(u'obj_disappear_thresh', 60),
-                                u'obj_teleport_threshold': config.getfloat(u'obj_teleport_threshold', 0.4),
-                                u'track_within_polygon': False,
-                                u'tracked_polygon': [(185, 0), (253, 224), (223, 476),
-                                                    (442, 479), (411, 224), (719, 206), (719, 0)]}
-
-    trackers = {}
     trackerOutQs = {}
-    trackerInQs = {}  # self.manager.Queue()
+    trackerInQs = {}  
     trackerStopEvent = manager.Event()
-    for feedID in xrange(num_feeds):
-        frameid.append(0)
-        trackerindex = 0
-        trackers[feedID] = {}
-        trackerInQs[feedID] = {}
-        trackerOutQs[feedID] = manager.Queue()
-        for yoloclass in yolo_classes_to_track:
-            if yoloclass in class_names:
-                trackerInQs[feedID][yoloclass] = manager.Queue()
-                trackers[feedID][yoloclass] = Tracker(
-                    idx=[TRACKER_OBJ_ID,
-                        class_names.index(yoloclass),
-                        trackerindex
-                        ],
-                    inputq=trackerInQs[feedID][yoloclass],
-                    outputq=trackerOutQs[feedID], stop_event=trackerStopEvent,
-                    settings=trackerSettings)
-                trackers[feedID][yoloclass].start()
-                trackerindex += 1
-            else:
-                raise ValueError(u'Class not found in yolo, check yolo_classes_to_track in config file')
+    trackerInQs[0] = {}
+    trackerOutQs[0] = manager.Queue()
+    classNames = ['person\n', 'bicycle\n', 'car\n', 'motorbike\n', 'aeroplane\n', 'bus\n', 'train\n', 'truck\n', 'boat\n', 'traffic light\n', 'fire hydrant\n', 'stop sign\n', 'parking meter\n', 'bench\n']
+    trackerSettings = {'tracker': 'kcf',
+                            'class_names': classNames,
+                            'obj_disappear_thresh': 10,
+                            'obj_teleport_threshold': 0.3,
+                            'track_within_polygon': False,
+                            'tracked_polygon': [(185, 0), (253, 224), (223, 476),
+                                                (442, 479), (411, 224), (719, 206), (719, 0)]}
+
+    t = Tracker(
+        idx=[1,0,0], 
+        inputq=trackerInQs[feedID][yoloclass],
+        outputq=trackerOutQs[feedID], 
+        stop_event=trackerStopEvent,
+        settings=trackerSettings)
+    t.start()
 
 
