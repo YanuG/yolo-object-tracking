@@ -27,9 +27,11 @@
 
 ## Running the Project
 
-1. Enable maximum clock speed. This is done in the home directory ``` ./jetson-clocks.sh```
+1. Source workspace. ```source ~/catkin_ws/devel/setup.bash```
 
-2.  Run launch file ```roslaunch yolo_object_tracking yolo_object_tracking```
+2. Enable maximum clock speed. This is done in the home directory ``` ./jetson-clocks.sh```
+
+3. Run launch file ```roslaunch yolo_object_tracking default.launch```
 
 ## Current Results
 
