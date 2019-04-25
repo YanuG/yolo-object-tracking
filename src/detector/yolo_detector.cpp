@@ -97,8 +97,8 @@ int main(int argc, char** argv)
     // inferface with YoloV3 NN
     std::unique_ptr<Yolo> inferNet = std::unique_ptr<Yolo>{new YoloV3(1 , pathToDir)};
     // create publishers and subscriers
-    ros::Publisher pub = nh.advertise<yolo_object_tracking::BoundingBoxesVector>("/boundingBoxes", 1);
-    ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(configFile["topicName"], 1, 
+    ros::Publisher pub = nh.advertise<yolo_object_tracking::BoundingBoxesVector>(configFile["detectorTopic"], 1);
+    ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(configFile["cameraTopic"], 1, 
             boost::bind(&cameraCallback, _1, configFile, &inferNet, pub));
      
     ros::spin();

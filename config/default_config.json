@@ -1,10 +1,11 @@
 {
 
     "showRawImage": false,
-    "displayInferenceTime": false,
+    "displayInferenceTime": true,
     "displayPredicition": false,
     "displayDetection": true,
     "drawOnImage": true,
-    "topicName": "/csi_cam_0/image_raw"
+    "cameraTopic": "/csi_cam_0/image_raw",
+    "detectorTopic": "/detector_values_0"
     
 }
