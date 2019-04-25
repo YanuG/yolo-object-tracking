@@ -11,38 +11,12 @@ import rospy
 from yolo_object_tracking.msg import BoundingBoxesVector
 from cv_bridge import CvBridge
 #for reading from config
-#import configparser
-
 
 class Tracker():
-    def __init__(self, idx, inputq, outputq, stop_event, settings):
+    def __init__(self, settings):
         """
-        :param list idx: integer list to distinguish objects [type,sub-type,index]
-        :param multiprocessing.Manager.Queue() inputq: each element is a dictionary with keys,
-        'original_image','frame_id',['boxes'],['scores']['classes']
-        boxes: list of [[y_min,x_min,y_max,x_max], [y_min,..],...] where
-        | x_min, y_min |   |             |
-        |              |   |             |
-        |              |   | x_max,y_max |
-        other possibly used names for coordinates within this class:
-        | left, top    |   |             |
-        |              |   |             |
-        |              |   | right,bottom|
-        scores: list of probabilities for each detection
-        'classes': list of classes for each detection
-        :param multiprocessing.Manager.Queue() outputq: Each element is a dictionary with keys,
-        'idx'(=self.idx), 'frame_id'(=inputq.get()['frame_id']), ['boxes'],['scores'],['classes'] for tracked items
-        :param multiprocessing.Event() stop_event: Signals the process to stop
-        :param dict settings: {'tracker' : <tracker_type>, 'class_names':<class_names>}
-        <tracker_type> : Possible values, 'csrt', 'kcf','boosting','mil','tld','medianflow','mosse'
-        <class_names> : List of class names
+        :param dict settings
         """
-        #multiprocessing.Process.__init__(self, name='tracker_'+str(idx))
-        self.name = 'tracker_'+str(idx)
-        self.idx = idx
-        self.inputQ = inputq
-        self.outputQ = outputq
-        self.stopEvent = stop_event
         self.settings = settings
         self.currentInputDict = {}
         self.tracked_boxes = []
@@ -56,11 +30,6 @@ class Tracker():
             "mosse": cv2.TrackerMOSSE_create,
             "goturn": cv2.TrackerGOTURN_create
         }
-        # self.tracker = self.OPENCV_OBJECT_TRACKERS.get(self.settings['tracker'], cv2.TrackerKCF_create)()
-        # self.multi_trackers = cv2.MultiTracker_create()
-        self.class_names = self.settings['class_names']
-        # self.ctracker = CentroidTracker(maxDisappeared=30)
-
         # From : https://www.pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/
         # initialize the next unique object ID along with two ordered
         # dictionaries used to keep track of mapping a given object
@@ -80,6 +49,7 @@ class Tracker():
         rospy.init_node('tracker', anonymous=True)
         # when a message is sent to this topic it will call the update method 
         rospy.Subscriber("/detector_values_0", BoundingBoxesVector, self.update)
+        # create publisher 
         self.bridge = CvBridge()
 
     def register(self, centroid, rect):
@@ -100,6 +70,7 @@ class Tracker():
     def deregister(self, objectID):
         # to deregister an object ID we delete the object ID from
         # both of our respective dictionaries
+	print(objectID)
         del self.objects[objectID]
         del self.disappeared[objectID]
         del self.objectMetaData[objectID]
@@ -124,10 +95,10 @@ class Tracker():
                     IDSToDeregister.append(objectID)
             for objectID in IDSToDeregister:
                 self.deregister(objectID)
-                #send ROS message 
+		# ROS publish disappeared object
             # return early as there are no centroids or tracking info
             # to update
-            return self.objects, self.nextObjectID
+      	    return 
 
         # initialize an array of input centroids for the current frame
         inputCentroids = np.zeros((len(rects.boundingBoxesVector), 2), dtype="int")
@@ -136,8 +107,8 @@ class Tracker():
 	# print rects.boundingBoxesVector
         for (i , boundingBoxes) in enumerate(rects.boundingBoxesVector):
             # use the bounding box coordinates to derive the centroid
-            cX = int((boundingBoxes.xmin + boundingBoxes.xmax) / 2.0)
-            cY = int((boundingBoxes.ymin + boundingBoxes.ymax) / 2.0)
+            cX = int((boundingBoxes.xmin + boundingBoxes.xmax) / 2.0) #TODO add frame width to the coordinates 
+            cY = int((boundingBoxes.ymin + boundingBoxes.ymax) / 2.0) #TODO add frame width to the coordinates 
             inputCentroids[i] = (cX, cY)
 
         # if we are currently not tracking any objects take the input
@@ -220,7 +191,7 @@ class Tracker():
                     # index and increment the disappeared counter
                     objectID = objectIDs[row]
                     self.disappeared[objectID] += 1
-
+		    # if we choose to remove threshold we can remove this condition - Yanushka  
                     # check to see if the number of consecutive
                     # frames the object has been marked "disappeared"
                     # for warrants deregistering the object
@@ -235,37 +206,18 @@ class Tracker():
                     self.register(inputCentroids[col], rects.boundingBoxesVector[col])
 
 
-        # return the set of trackable objects
-        return self.objects, self.nextObjectID
-
     def rects_to_roi(self, rect):
         left, top, right, bottom = rect.xmin, rect.ymax, rect.xmax, rect.ymin 
         roibox = np.asarray([(left+right)/2, (top+bottom)/2, abs(right-left), abs(bottom-top)])
         return roibox.astype("int")
 
 if __name__ == '__main__':
-    yolo_classes = ["person"]
-    manager = multiprocessing.Manager()
-    trackerOutQs = {}
-    trackerInQs = {}  
-    trackerStopEvent = manager.Event()
-    trackerInQs[0] = {}
-    trackerOutQs[0] = manager.Queue()
-    classNames = ['person\n']
+    # put settings in json file 
     trackerSettings = {'tracker': 'kcf',
-                            'class_names': classNames,
-                            'obj_disappear_thresh': 10,
+                            'obj_disappear_thresh': 0,
                             'obj_teleport_threshold': 0.3,
-                            'track_within_polygon': False,
-                            'tracked_polygon': [(185, 0), (253, 224), (223, 476),
-                                                (442, 479), (411, 224), (719, 206), (719, 0)]}
-    for yoloclass in yolo_classes:
-	trackerInQs[0][yoloclass] = manager.Queue();
-        t = Tracker(
-            idx=[1,0,0], 
-            inputq=trackerInQs[0][yoloclass],
-            outputq=trackerOutQs[0], 
-            stop_event=trackerStopEvent,
-            settings=trackerSettings)
-        #t.start()
-        rospy.spin()
+        }
+
+    t = Tracker(
+        settings=trackerSettings)
+    rospy.spin()
