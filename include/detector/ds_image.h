@@ -38,11 +38,9 @@ public:
     int getImageHeight() const { return m_Height; }
     int getImageWidth() const { return m_Width; }
     cv::Mat getLetterBoxedImage() const { return m_LetterboxImage; }
-    cv::Mat getOriginalImage() const { return m_OrigImage; }
-    std::string getImageName() const { return m_ImageName; }
-    void addBBox(BBoxInfo box, const std::string& labelName);
-    void showImage(int time) const;
-    void saveImageJPEG(const std::string& dirPath) const;
+    // void addBBox(BBoxInfo box, const std::string& labelName);
+    // void showImage(int time) const;
+    // void saveImageJPEG(const std::string& dirPath) const;
 
 private:
     int m_Height;
@@ -51,7 +49,6 @@ private:
     int m_YOffset;
     float m_ScalingFactor;
     std::string m_ImagePath;
-    cv::RNG m_RNG;
     std::string m_ImageName;
     std::vector<BBoxInfo> m_Bboxes;
 

@@ -253,3 +253,4 @@ if __name__ == '__main__':
 	t = Tracker(
 	settings=trackerSettings)
 	rospy.spin()
+   
