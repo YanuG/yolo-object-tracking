@@ -48,8 +48,9 @@ class Tracker():
 		self.disappeared = OrderedDict()
 		# Camera id for camera handoff
 		self.cameraID = self.settings.get('cameraID', 0)
-		self.numCameras = self.settings.get('numCameras, 1')
+		self.numCameras = self.settings.get('numCameras', 1)
 		self.screenWidth = self.settings.get('width', 416)
+		self.detectorTopic = self.settings.get('detectorTopic', "/detector_values_0")
 		# drawer
 		self.drawer = Draw("Output Stream")
 		# store the number of maximum consecutive frames a given
@@ -60,7 +61,7 @@ class Tracker():
 		# add this to the init function 
 		rospy.init_node('tracker', anonymous=True)
 		# when a message is sent to this topic it will call the update method 
-		rospy.Subscriber("/detector_values_0", BoundingBoxesVector, self.update)
+		rospy.Subscriber(self.detectorTopic, BoundingBoxesVector, self.update)
 		# create publisher 
 		self.bridge = CvBridge()
 		self.pub = rospy.Publisher('/feed'+str(self.cameraID), BoundingBoxesVector, queue_size=1)
@@ -77,6 +78,7 @@ class Tracker():
 		# tracker.init(self.image, roituple)
 		self.objectMetaData[objectUID] = [rect, tracker]
 		self.disappeared[objectUID] = 0
+		print("register", objectUID)
 
 	def deregister(self, objectIndex):
 		# to deregister an object ID we delete the object ID from
@@ -88,7 +90,7 @@ class Tracker():
 			bVector = BoundingBoxesVector()
 			bVector.boundingBoxesVector.append(box)
 			bVector.feedID = self.cameraID
-			print ("hello")			
+			print ("deregister", objectIndex)			
 			self.pub.publish(bVector)
 
 		del self.objects[objectIndex]
@@ -113,7 +115,7 @@ class Tracker():
 			if self.cameraID == rects.feedID:
 				objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3]
 			else:
-				objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3] #TODO change back
+				objectUID = boundingBoxes.id
 			
 		# check to see if the list of input bounding box rectangles
 		# is empty
@@ -262,6 +264,7 @@ if __name__ == '__main__':
 		data = trackerConfig.read()
 	settings = json.loads(data)
 	trackerSettings = {'tracker': settings["tracker"],
+                   'detectorTopic': settings["detectorTopic"],
 					    'obj_disappear_thresh': settings["obj_disappear_thresh"],
 					    'obj_teleport_threshold': settings["obj_teleport_threshold"], 
 					    'cameraID': settings["cameraID"],

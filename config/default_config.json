@@ -6,7 +6,7 @@
 	"displayDetection": true,
 	"drawOnImage": true,
 	"cameraTopic": "/csi_cam_0/image_raw",
-	"detectorTopic": "/detector_values_0",
+	"detectorTopic": "/detector_values_1",
 	"image": {
 		"width": 416,
 		"height": 416

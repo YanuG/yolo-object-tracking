@@ -64,6 +64,7 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
         data.xmin = b.box.x1;  data.ymin = b.box.y1;  data.xmax = b.box.x2;  data.ymax = b.box.y2;  data.id = (*inferNet)->getClassName(b.label);
         boxMsg.boundingBoxesVector.push_back(data);
     }
+	 boxMsg.feedID = configFile["cameraID"];
     // convert image as a ROS message (sensor_msgs/Image)
     std_msgs::Header header; 
     header.seq = counter; 
