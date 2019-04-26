@@ -30,6 +30,7 @@ class Tracker():
             "mosse": cv2.TrackerMOSSE_create,
             "goturn": cv2.TrackerGOTURN_create
         }
+
         # From : https://www.pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/
         # initialize the next unique object ID along with two ordered
         # dictionaries used to keep track of mapping a given object
@@ -39,7 +40,6 @@ class Tracker():
         self.objects = OrderedDict()
         self.objectMetaData = OrderedDict()
         self.disappeared = OrderedDict()
-
         # store the number of maximum consecutive frames a given
         # object is allowed to be marked as "disappeared" until we
         # need to deregister the object from tracking
@@ -52,25 +52,26 @@ class Tracker():
         # create publisher 
         self.bridge = CvBridge()
 
+
+
     def register(self, centroid, rect):
         # when registering an object we use the next available object
         # ID to store the centroid
         self.objects[self.nextObjectID] = centroid
         tracker = self.OPENCV_OBJECT_TRACKERS.get(self.settings['tracker'], cv2.TrackerKCF_create)()
-
         roiRect = self.rects_to_roi(rect)
         roituple = (roiRect[0],roiRect[1],roiRect[2],roiRect[3])
         # print(f"ROI Rect: {roituple}, type: {type(roituple)}")
         tracker.init(self.image, roituple)
        
         self.objectMetaData[self.nextObjectID] = [rect, tracker]
+
         self.disappeared[self.nextObjectID] = 0
         self.nextObjectID += 1
 
     def deregister(self, objectID):
         # to deregister an object ID we delete the object ID from
         # both of our respective dictionaries
-	print(objectID)
         del self.objects[objectID]
         del self.disappeared[objectID]
         del self.objectMetaData[objectID]
@@ -78,6 +79,7 @@ class Tracker():
     def update(self, rects):
         # check to see if the list of input bounding box rectangles
         # is empty
+
         self.image = self.bridge.imgmsg_to_cv2(rects.image, "bgr8")        
 
         if len(rects.boundingBoxesVector) == 0:
@@ -95,24 +97,28 @@ class Tracker():
                     IDSToDeregister.append(objectID)
             for objectID in IDSToDeregister:
                 self.deregister(objectID)
-		# ROS publish disappeared object
+	    # ROS publish disappeared object
             # return early as there are no centroids or tracking info
             # to update
       	    return 
+
 
         # initialize an array of input centroids for the current frame
         inputCentroids = np.zeros((len(rects.boundingBoxesVector), 2), dtype="int")
 
         # loop over the bounding box rectangles
+
 	# print rects.boundingBoxesVector
         for (i , boundingBoxes) in enumerate(rects.boundingBoxesVector):
             # use the bounding box coordinates to derive the centroid
             cX = int((boundingBoxes.xmin + boundingBoxes.xmax) / 2.0) #TODO add frame width to the coordinates 
             cY = int((boundingBoxes.ymin + boundingBoxes.ymax) / 2.0) #TODO add frame width to the coordinates 
+
             inputCentroids[i] = (cX, cY)
 
         # if we are currently not tracking any objects take the input
         # centroids and register each of them
+
         if len(self.objects) == 0:
             for i in range(0, len(inputCentroids)):
                 self.register(inputCentroids[i], rects.boundingBoxesVector[i])
@@ -127,6 +133,7 @@ class Tracker():
             objectCentroids = list(self.objects.values())
             print("objIDS: " , objectIDs)
             print("objCentroid: " , objectCentroids)
+
 
             # compute the distance between each pair of object
             # centroids and input centroids, respectively -- our
@@ -165,6 +172,7 @@ class Tracker():
                 x1, y1 = self.objects[objectID][0], self.objects[objectID][1]
                 x2, y2 = inputCentroids[col][0],inputCentroids[col][1]
                 height, width, channels = self.image.shape
+
                 # print(f'height: {height}, width: {width}, ch: {channels}')
                 if math.hypot(x2-x1, y2-y1) < self.obj_teleport_threshold*(height+width)*0.5:
                     self.objects[objectID] = inputCentroids[col]
@@ -192,6 +200,7 @@ class Tracker():
                     objectID = objectIDs[row]
                     self.disappeared[objectID] += 1
 		    # if we choose to remove threshold we can remove this condition - Yanushka  
+
                     # check to see if the number of consecutive
                     # frames the object has been marked "disappeared"
                     # for warrants deregistering the object
@@ -204,7 +213,6 @@ class Tracker():
             else:
                 for col in unusedCols:
                     self.register(inputCentroids[col], rects.boundingBoxesVector[col])
-
 
     def rects_to_roi(self, rect):
         left, top, right, bottom = rect.xmin, rect.ymax, rect.xmax, rect.ymin 
@@ -221,3 +229,4 @@ if __name__ == '__main__':
     t = Tracker(
         settings=trackerSettings)
     rospy.spin()
+
