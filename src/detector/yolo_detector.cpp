@@ -24,7 +24,6 @@ int counter = 0;
 // default values of an image size
 int imageWidth = 0;
 int imageHeight = 0;
-
 /**
  * Callback function for Jetson csi cam
 **/
