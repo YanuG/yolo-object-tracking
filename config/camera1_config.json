@@ -1,0 +1,19 @@
+{
+
+	"showRawImage": false,
+	"displayInferenceTime": true,
+	"displayPredicition": false,
+	"displayDetection": true,
+	"drawOnImage": true,
+	"cameraTopic": "/csi_cam_1/image_raw",
+	"detectorTopic": "/detector_values_1",
+	"image": {
+		"width": 416,
+		"height": 416
+	},
+	"tracker": "kcf",
+	 "obj_disappear_thresh": 0,
+	 "obj_teleport_threshold": 0.3,
+	 "cameraID": 1,
+	 "numCameras": 2   
+}

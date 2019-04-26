@@ -78,7 +78,7 @@ class Tracker():
 		# tracker.init(self.image, roituple)
 		self.objectMetaData[objectUID] = [rect, tracker]
 		self.disappeared[objectUID] = 0
-		print("register", objectUID)
+		print("registered", objectUID)
 
 	def deregister(self, objectIndex):
 		# to deregister an object ID we delete the object ID from
@@ -89,9 +89,9 @@ class Tracker():
 			box.xmin, box.ymin, box.xmax, box.ymax, box.id = self.objects[objectIndex][0], self.objects[objectIndex][1], self.objects[objectIndex][0], self.objects[objectIndex][1], objectIndex
 			bVector = BoundingBoxesVector()
 			bVector.boundingBoxesVector.append(box)
-			bVector.feedID = self.cameraID
-			print ("deregister", objectIndex)			
+			bVector.feedID = self.cameraID		
 			self.pub.publish(bVector)
+			print ("deregistered/published", objectIndex)	
 
 		del self.objects[objectIndex]
 		del self.disappeared[objectIndex]
