@@ -9,7 +9,7 @@ import math
 import shapely.geometry
 #for ROS
 import rospy 
-from yolo_object_tracking.msg import BoundingBoxesVector
+from yolo_object_tracking.msg import BoundingBoxesVector, BoundingBoxes
 from cv_bridge import CvBridge
 #for reading from config
 import json
@@ -48,7 +48,7 @@ class Tracker():
 		self.disappeared = OrderedDict()
 		# Camera id for camera handoff
 		self.cameraID = self.settings.get('cameraID', 0)
-		# size of the screen TODO read from json
+		self.numCameras = self.settings.get('numCameras, 1')
 		self.screenWidth = self.settings.get('width', 416)
 		# drawer
 		self.drawer = Draw("Output Stream")
@@ -63,6 +63,7 @@ class Tracker():
 		rospy.Subscriber("/detector_values_0", BoundingBoxesVector, self.update)
 		# create publisher 
 		self.bridge = CvBridge()
+		self.pub = rospy.Publisher('/feed'+str(self.cameraID), BoundingBoxesVector, queue_size=1)
 
 	def register(self, centroid, rect, objectUID):
 		# when registering an object we use the next available object
@@ -74,17 +75,22 @@ class Tracker():
 		roituple = (roiRect[0],roiRect[1],roiRect[2],roiRect[3])
 		# print(f"ROI Rect: {roituple}, type: {type(roituple)}")
 		# tracker.init(self.image, roituple)
-		
 		self.objectMetaData[objectUID] = [rect, tracker]
 		self.disappeared[objectUID] = 0
-	#def handleROSMessage(self, msg):
-		
-		# self.update(rects)
 
 	def deregister(self, objectIndex):
 		# to deregister an object ID we delete the object ID from
 		# both of our respective dictionaries
-		# print(objectIndex)
+		if(not(self.cameraID == 0 and self.objects[objectIndex][0] < 208) or (self.cameraID == self.numCameras-1 and self.objects[objectIndex][0] > 208)):
+			#publish it
+			box = BoundingBoxes()
+			box.xmin, box.ymin, box.xmax, box.ymax, box.id = self.objects[objectIndex][0], self.objects[objectIndex][1], self.objects[objectIndex][0], self.objects[objectIndex][1], objectIndex
+			bVector = BoundingBoxesVector()
+			bVector.boundingBoxesVector.append(box)
+			bVector.feedID = self.cameraID
+			print ("hello")			
+			self.pub.publish(bVector)
+
 		del self.objects[objectIndex]
 		del self.disappeared[objectIndex]
 		del self.objectMetaData[objectIndex]
@@ -104,12 +110,10 @@ class Tracker():
 			incrementAmount = self.screenWidth*2	
 		
 		for (i , boundingBoxes) in enumerate(rects.boundingBoxesVector): 
-			#if self.cameraID == rects.feedID:
-			#	objectUID = boundingBoxes.id + uuid.uuid4()
-			#else:
-			#	objectUID = boundingBoxes.id
-			objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3]
-			print objectUID
+			if self.cameraID == rects.feedID:
+				objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3]
+			else:
+				objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3] #TODO change back
 			
 		# check to see if the list of input bounding box rectangles
 		# is empty
@@ -148,7 +152,7 @@ class Tracker():
 		# centroids and register each of them
 		if len(self.objects) == 0:
 			for i in range(0, len(inputCentroids)):
-				self.register(inputCentroids[i], rects.boundingBoxesVector[i], objectUID) #TODO
+				self.register(inputCentroids[i], rects.boundingBoxesVector[i], objectUID)
 
 		# otherwise, are are currently tracking objects so we need to
 		# try to match the input centroids to existing object
@@ -261,7 +265,8 @@ if __name__ == '__main__':
 					    'obj_disappear_thresh': settings["obj_disappear_thresh"],
 					    'obj_teleport_threshold': settings["obj_teleport_threshold"], 
 					    'cameraID': settings["cameraID"],
-						 'width': settings["image"]["width"]
+						 'width': settings["image"]["width"],
+						 'numCameras': settings["numCameras"]
 	}
 
 	t = Tracker(
