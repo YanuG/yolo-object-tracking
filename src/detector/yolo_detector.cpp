@@ -21,6 +21,9 @@
 
 // header sequence number
 int counter = 0;
+// default values of an image size
+int imageWidth = 0;
+int imageHeight = 0;
 
 /**
  * Callback function for Jetson csi cam
@@ -31,13 +34,13 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
     counter ++;
     cv::Mat orginalImage = cv_bridge::toCvShare(msg, "bgr8")->image;
     cv::Mat image;
-    cv::resize(orginalImage, orginalImage, cv::Size(416, 416)); 
+    cv::resize(orginalImage, orginalImage, cv::Size(imageWidth, imageHeight)); 
     // currently image is reotated from camera - need to fix that 
     cv::flip(orginalImage, image, 0);
        if (configFile["showRawImage"]){
          cv::imshow("image_raw", image);
          cv::waitKey(1);
-     }
+    }
     // resize image
     DsImage dsImage = DsImage(image, (*inferNet) -> getInputH(), (*inferNet) -> getInputW()); 
     // covert image to a trtInput
@@ -61,9 +64,6 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
         // save bounding box and class name into ros message BoundingBoxes
         data.xmin = b.box.x1;  data.ymin = b.box.y1;  data.xmax = b.box.x2;  data.ymax = b.box.y2;  data.id = (*inferNet)->getClassName(b.label);
         boxMsg.boundingBoxesVector.push_back(data);
-        if (configFile["drawOnImage"])
-            // TODO - put in draw.py
-            dsImage.addBBox(b, (*inferNet)->getClassName(b.label));
     }
     // convert image as a ROS message (sensor_msgs/Image)
     std_msgs::Header header; 
@@ -72,9 +72,6 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
     img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, image);
     img_bridge.toImageMsg(img_msg);
     boxMsg.image =  img_msg;    
-    // TODO remove display - put in draw.py 
-    if (configFile["displayDetection"])
-        dsImage.showImage(1);
     // Display time it take to tranfer image to GPU, anaylsis it and return image 
     if (configFile["displayInferenceTime"])
         std::cout << "Inference time : " << endTimer - beginTimer  << " s" << std::endl; 
@@ -96,9 +93,12 @@ int main(int argc, char** argv)
     i >> configFile;
     // inferface with YoloV3 NN
     std::unique_ptr<Yolo> inferNet = std::unique_ptr<Yolo>{new YoloV3(1 , pathToDir)};
+    // set image size 
+    imageWidth = configFile["image"]["width"];
+    imageHeight = configFile["image"]["height"];
     // create publishers and subscriers
-    ros::Publisher pub = nh.advertise<yolo_object_tracking::BoundingBoxesVector>("/boundingBoxes", 1);
-    ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(configFile["topicName"], 1, 
+    ros::Publisher pub = nh.advertise<yolo_object_tracking::BoundingBoxesVector>(configFile["detectorTopic"], 1);
+    ros::Subscriber sub = nh.subscribe<sensor_msgs::Image>(configFile["cameraTopic"], 1, 
             boost::bind(&cameraCallback, _1, configFile, &inferNet, pub));
      
     ros::spin();
