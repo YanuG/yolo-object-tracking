@@ -78,14 +78,24 @@ class Tracker():
 	def handleROSMessage(self, msg):
 		# handles the callback function from ROS to change the coordinate of the bounding boxes according to which screen it came from
 		rects = {}
+		incrementAmount = 0
 		self.image = self.bridge.imgmsg_to_cv2(msg.image, "bgr8")  
+		
+		# update the coordinates depending on which feed it came in from
+		if(self.cameraID > msg.feedID): # feed came in from the left camera
+			incrementAmount = -self.screenWidth
+		elif(self.cameraID < msg.feedID): # feed came in from the right camera
+			incrementAmount = 2*self.screenWidth
+		else: # feed came in from its own detector
+			incrementAmount = self.screenWidth	
+		
 		for (i , boundingBoxes) in enumerate(msg.boundingBoxesVector): 
-			if(self.cameraID == msg.feedID):
-				rect = {'xmin': boundingBoxes.xmin + 416, 
-                    'xmax': boundingBoxes.xmax + 416, 
-                    'ymin': boundingBoxes.ymin, 
-                    'ymax': boundingBoxes.ymax}
-				rects[i] = rect;
+			rect = {'xmin': boundingBoxes.xmin + incrementAmount, 
+	              'xmax': boundingBoxes.xmax + incrementAmount, 
+	              'ymin': boundingBoxes.ymin, 
+	              'ymax': boundingBoxes.ymax}
+			rects[i] = rect;
+		update(rects)
 
 	def deregister(self, objectIndex):
 		# to deregister an object ID we delete the object ID from
@@ -98,7 +108,7 @@ class Tracker():
 	def update(self, rects):
 		# check to see if the list of input bounding box rectangles
 		# is empty
-		if len(rects.boundingBoxesVector) == 0:
+		if len(rects) == 0:
 			# loop over any existing tracked objects and mark them
 			# as disappeared
 			IDSToDeregister = []
@@ -119,11 +129,11 @@ class Tracker():
 			return 
 
 		# initialize an array of input centroids for the current frame
-		inputCentroids = np.zeros((len(rects.boundingBoxesVector), 2), dtype="int")
+		inputCentroids = np.zeros((len(rects), 2), dtype="int")
 
 		# loop over the bounding box rectangles
-		# print rects.boundingBoxesVector
-		for (i , boundingBoxes) in enumerate(rects.boundingBoxesVector):
+		# print rects
+		for (i , boundingBoxes) in enumerate(rects):
 			# use the bounding box coordinates to derive the centroid
 			cX = int((boundingBoxes.xmin + boundingBoxes.xmax) / 2.0)
 			cY = int((boundingBoxes.ymin + boundingBoxes.ymax) / 2.0) 
@@ -133,7 +143,7 @@ class Tracker():
 		# centroids and register each of them
 		if len(self.objects) == 0:
 			for i in range(0, len(inputCentroids)):
-				self.register(inputCentroids[i], rects.boundingBoxesVector[i])
+				self.register(inputCentroids[i], rects[i])
 
 		# otherwise, are are currently tracking objects so we need to
 		# try to match the input centroids to existing object
@@ -221,7 +231,7 @@ class Tracker():
 			# register each new input centroid as a trackable object
 			else:
 				for col in unusedCols:
-					self.register(inputCentroids[col], rects.boundingBoxesVector[col])
+					self.register(inputCentroids[col], rects[col])
 
 
 	def rects_to_roi(self, rect):
