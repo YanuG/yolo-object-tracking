@@ -213,9 +213,13 @@ class Tracker():
 
 if __name__ == '__main__':
     # put settings in json file 
-    trackerSettings = {'tracker': 'kcf',
-                            'obj_disappear_thresh': 0,
-                            'obj_teleport_threshold': 0.3,
+    with open('tracker_config.json', 'r') as trackerConfig:
+        data = trackerConfig.read()
+	settings = json.loads(data)
+	
+    trackerSettings = {'tracker': settings["tracker"],
+                            'obj_disappear_thresh': ["obj_disappear_thresh"],
+                            'obj_teleport_threshold': ["obj_teleport_threshold"],
         }
 
     t = Tracker(
