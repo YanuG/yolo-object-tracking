@@ -20,7 +20,7 @@
 #include <sensor_msgs/Image.h>
 
 // header sequence number
-global int counter = 0;
+int counter = 0;
 
 /**
  * Callback function for Jetson csi cam
