@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 import multiprocessing
 import cv2
 import numpy as np
@@ -14,6 +15,10 @@ from cv_bridge import CvBridge
 import json
 #for unique ids
 import uuid
+#for displaying
+sys.path.append('../drawer')
+from drawer import Draw
+import rospkg 
 
 class Tracker():
 	def __init__(self, settings):
@@ -38,15 +43,15 @@ class Tracker():
 		# dictionaries used to keep track of mapping a given object
 		# ID to its centroid and number of consecutive frames it has
 		# been marked as "disappeared", respectively
-		self.nextObjectID = uuid.uuid4()
 		self.objects = OrderedDict()
 		self.objectMetaData = OrderedDict()
 		self.disappeared = OrderedDict()
 		# Camera id for camera handoff
 		self.cameraID = self.settings.get('cameraID', 0)
 		# size of the screen TODO read from json
-		self.screenWidth = 416
-
+		self.screenWidth = self.settings.get('width', 416)
+		# drawer
+		self.drawer = Draw("Output Stream")
 		# store the number of maximum consecutive frames a given
 		# object is allowed to be marked as "disappeared" until we
 		# need to deregister the object from tracking
@@ -55,60 +60,60 @@ class Tracker():
 		# add this to the init function 
 		rospy.init_node('tracker', anonymous=True)
 		# when a message is sent to this topic it will call the update method 
-		rospy.Subscriber("/detector_values_0", BoundingBoxesVector, self.handleROSMessage)
+		rospy.Subscriber("/detector_values_0", BoundingBoxesVector, self.update)
 		# create publisher 
 		self.bridge = CvBridge()
 
-	def register(self, centroid, rect):
+	def register(self, centroid, rect, objectUID):
 		# when registering an object we use the next available object
 		# ID to store the centroid
-		self.objects[self.nextObjectID] = centroid
+		self.objects[objectUID] = centroid
 		tracker = self.OPENCV_OBJECT_TRACKERS.get(self.settings['tracker'], cv2.TrackerKCF_create)()
 
 		roiRect = self.rects_to_roi(rect)
 		roituple = (roiRect[0],roiRect[1],roiRect[2],roiRect[3])
 		# print(f"ROI Rect: {roituple}, type: {type(roituple)}")
-		tracker.init(self.image, roituple)
-
-		self.objectMetaData[self.nextObjectID] = [rect, tracker]
-		self.disappeared[self.nextObjectID] = 0
-		self.nextObjectID = uuid.uuid4()
-		#self.nextObjectID += 1
-
-	def handleROSMessage(self, msg):
-		# handles the callback function from ROS to change the coordinate of the bounding boxes according to which screen it came from
-		rects = {}
-		incrementAmount = 0
-		self.image = self.bridge.imgmsg_to_cv2(msg.image, "bgr8")  
+		# tracker.init(self.image, roituple)
 		
-		# update the coordinates depending on which feed it came in from
-		if(self.cameraID > msg.feedID): # feed came in from the left camera
-			incrementAmount = -self.screenWidth
-		elif(self.cameraID < msg.feedID): # feed came in from the right camera
-			incrementAmount = 2*self.screenWidth
-		else: # feed came in from its own detector
-			incrementAmount = self.screenWidth	
+		self.objectMetaData[objectUID] = [rect, tracker]
+		self.disappeared[objectUID] = 0
+	#def handleROSMessage(self, msg):
 		
-		for (i , boundingBoxes) in enumerate(msg.boundingBoxesVector): 
-			rect = {'xmin': boundingBoxes.xmin + incrementAmount, 
-	              'xmax': boundingBoxes.xmax + incrementAmount, 
-	              'ymin': boundingBoxes.ymin, 
-	              'ymax': boundingBoxes.ymax}
-			rects[i] = rect;
-		update(rects)
+		# self.update(rects)
 
 	def deregister(self, objectIndex):
 		# to deregister an object ID we delete the object ID from
 		# both of our respective dictionaries
-		print(objectIndex)
+		# print(objectIndex)
 		del self.objects[objectIndex]
 		del self.disappeared[objectIndex]
 		del self.objectMetaData[objectIndex]
 
 	def update(self, rects):
+		# handles the callback function from ROS to change the coordinate of the bounding boxes according to which screen it came from
+		incrementAmount = 0
+		self.image = self.bridge.imgmsg_to_cv2(rects.image, "rgb8")  
+		self.drawer.setImage(self.image)
+		
+		# update the coordinates depending on which feed it came in from
+		if(self.cameraID > rects.feedID): # feed came in from the left camera
+			incrementAmount = -(self.screenWidth*2)
+		elif(self.cameraID < rects.feedID): # feed came in from the right camera
+			incrementAmount = 2*self.screenWidth*2
+		else: # feed came in from its own detector
+			incrementAmount = self.screenWidth*2	
+		
+		for (i , boundingBoxes) in enumerate(rects.boundingBoxesVector): 
+			#if self.cameraID == rects.feedID:
+			#	objectUID = boundingBoxes.id + uuid.uuid4()
+			#else:
+			#	objectUID = boundingBoxes.id
+			objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3]
+			print objectUID
+			
 		# check to see if the list of input bounding box rectangles
 		# is empty
-		if len(rects) == 0:
+		if len(rects.boundingBoxesVector) == 0:
 			# loop over any existing tracked objects and mark them
 			# as disappeared
 			IDSToDeregister = []
@@ -129,13 +134,13 @@ class Tracker():
 			return 
 
 		# initialize an array of input centroids for the current frame
-		inputCentroids = np.zeros((len(rects), 2), dtype="int")
+		inputCentroids = np.zeros((len(rects.boundingBoxesVector), 2), dtype="int")
 
 		# loop over the bounding box rectangles
 		# print rects
-		for (i , boundingBoxes) in enumerate(rects):
+		for (i , boundingBoxes) in enumerate(rects.boundingBoxesVector):
 			# use the bounding box coordinates to derive the centroid
-			cX = int((boundingBoxes.xmin + boundingBoxes.xmax) / 2.0)
+			cX = int((boundingBoxes.xmin + boundingBoxes.xmax ) / 2.0)
 			cY = int((boundingBoxes.ymin + boundingBoxes.ymax) / 2.0) 
 			inputCentroids[i] = (cX, cY)
 
@@ -143,7 +148,7 @@ class Tracker():
 		# centroids and register each of them
 		if len(self.objects) == 0:
 			for i in range(0, len(inputCentroids)):
-				self.register(inputCentroids[i], rects[i])
+				self.register(inputCentroids[i], rects.boundingBoxesVector[i], objectUID) #TODO
 
 		# otherwise, are are currently tracking objects so we need to
 		# try to match the input centroids to existing object
@@ -153,8 +158,8 @@ class Tracker():
 			# print(self.objects)
 			objectIDs = list(self.objects.keys())
 			objectCentroids = list(self.objects.values())
-			print("objIDS: " , objectIDs)
-			print("objCentroid: " , objectCentroids)
+			#print("objIDS: " , objectIDs)
+			#print("objCentroid: " , objectCentroids)
 
 			# compute the distance between each pair of object
 			# centroids and input centroids, respectively -- our
@@ -219,7 +224,7 @@ class Tracker():
 					# index and increment the disappeared counter
 					objectID = objectIDs[row]
 					self.disappeared[objectID] += 1
-					# if we choose to remove threshold we can remove this condition - Yanushka  
+					# if we choose to remove threshold we can remove this condition
 					# check to see if the number of consecutive
 					# frames the object has been marked "disappeared"
 					# for warrants deregistering the object
@@ -231,7 +236,12 @@ class Tracker():
 			# register each new input centroid as a trackable object
 			else:
 				for col in unusedCols:
-					self.register(inputCentroids[col], rects[col])
+					self.register(inputCentroids[col], rects.boundingBoxesVector[col], objectUID)
+	
+		for boundingBox , metaData in zip(rects.boundingBoxesVector , self.objectMetaData):
+			self.drawer.addBox(boundingBox.xmin, boundingBox.ymin, boundingBox.xmax, boundingBox.ymax, boundingBox.id)
+		
+		self.drawer.displayImage()
 
 
 	def rects_to_roi(self, rect):
@@ -240,14 +250,18 @@ class Tracker():
 		return roibox.astype("int")
 
 if __name__ == '__main__':
+	# get project path
+	rospack = rospkg.RosPack()
+	path = rospack.get_path('yolo_object_tracking') + "/config/default_config.json"
 	# put settings in json file 
-	with open('tracker_config.json', 'r') as trackerConfig:
+	with open(path, 'r') as trackerConfig:
 		data = trackerConfig.read()
 	settings = json.loads(data)
 	trackerSettings = {'tracker': settings["tracker"],
 					    'obj_disappear_thresh': settings["obj_disappear_thresh"],
 					    'obj_teleport_threshold': settings["obj_teleport_threshold"], 
 					    'cameraID': settings["cameraID"],
+						 'width': settings["image"]["width"]
 	}
 
 	t = Tracker(
