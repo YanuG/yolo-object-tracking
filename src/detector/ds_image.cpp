@@ -31,7 +31,6 @@ DsImage::DsImage() :
     m_XOffset(0),
     m_YOffset(0),
     m_ScalingFactor(0.0),
-    m_RNG(cv::RNG(unsigned(std::time(0)))),
     m_ImageName()
 {
 }
@@ -42,7 +41,6 @@ DsImage::DsImage(const std::string& path, const int& inputH, const int& inputW) 
     m_XOffset(0),
     m_YOffset(0),
     m_ScalingFactor(0.0),
-    m_RNG(cv::RNG(unsigned(std::time(0)))),
     m_ImageName()
 {
     // remove path, change to frame number  
@@ -98,7 +96,6 @@ DsImage::DsImage(cv::Mat& image, const int& inputH, const int& inputW) :
     m_XOffset(0),
     m_YOffset(0),
     m_ScalingFactor(0.0),
-    m_RNG(cv::RNG(unsigned(std::time(0)))),
     m_ImageName()
 {
     // remove path, change to frame number  
@@ -147,32 +144,29 @@ DsImage::DsImage(cv::Mat& image, const int& inputH, const int& inputW) :
     cv::cvtColor(m_LetterboxImage, m_LetterboxImage, CV_BGR2RGB);
 }
 
-void DsImage::addBBox(BBoxInfo box, const std::string& labelName)
-{
-    m_Bboxes.push_back(box);
-    const int x = box.box.x1;
-    const int y = box.box.y1;
-    const int w = box.box.x2 - box.box.x1;
-    const int h = box.box.y2 - box.box.y1;
-    const cv::Scalar color
-        = cv::Scalar(m_RNG.uniform(0, 255), m_RNG.uniform(0, 255), m_RNG.uniform(0, 255));
+// void DsImage::addBBox(BBoxInfo box, const std::string& labelName)
+// {
+//     m_Bboxes.push_back(box);
+//     const int x = box.box.x1;
+//     const int y = box.box.y1;
+//     const int w = box.box.x2 - box.box.x1;
+//     const int h = box.box.y2 - box.box.y1;
+//     const cv::Scalar color
+//         = cv::Scalar(m_RNG.uniform(0, 255), m_RNG.uniform(0, 255), m_RNG.uniform(0, 255));
 
-    cv::rectangle(m_MarkedImage, cv::Rect(x, y, w, h), color, 1);
-    const cv::Size tsize
-        = cv::getTextSize(labelName, cv::FONT_HERSHEY_COMPLEX_SMALL, 0.5, 1, nullptr);
-    cv::rectangle(m_MarkedImage, cv::Rect(x, y, tsize.width + 3, tsize.height + 4), color, -1);
-    cv::putText(m_MarkedImage, labelName.c_str(), cv::Point(x, y + tsize.height),
-                cv::FONT_HERSHEY_COMPLEX_SMALL, 0.5, cv::Scalar(255, 255, 255), 1, CV_AA);
-}
+//     cv::rectangle(m_MarkedImage, cv::Rect(x, y, w, h), color, 1);
+//     const cv::Size tsize
+//         = cv::getTextSize(labelName, cv::FONT_HERSHEY_COMPLEX_SMALL, 0.5, 1, nullptr);
+//     cv::rectangle(m_MarkedImage, cv::Rect(x, y, tsize.width + 3, tsize.height + 4), color, -1);
+//     cv::putText(m_MarkedImage, labelName.c_str(), cv::Point(x, y + tsize.height),
+//                 cv::FONT_HERSHEY_COMPLEX_SMALL, 0.5, cv::Scalar(255, 255, 255), 1, CV_AA);
+// }
 
-void DsImage::showImage(int time) const
-{
-    cv::namedWindow(m_ImageName);
-    cv::imshow(m_ImageName.c_str(), m_MarkedImage);
-    cv::waitKey(time);  
-}
+// void DsImage::showImage(int time) const
+// {
+//     cv::namedWindow(m_ImageName);
+//     cv::imshow(m_ImageName.c_str(), m_MarkedImage);
+//     cv::waitKey(time);  
+// }
 
-void DsImage::saveImageJPEG(const std::string& dirPath) const
-{
-    cv::imwrite(dirPath + m_ImageName + ".jpeg", m_MarkedImage);
-}
+
