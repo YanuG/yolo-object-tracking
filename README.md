@@ -23,7 +23,9 @@
 
 4. Clone the following repo
 
-5. Run ```catkin_make```
+5. Install dependencies ```rosdep install --from-paths ../src -i -y``` 
+
+6. Navigate back to ```catkin_ws``` and run ```catkin_make``` 
 
 ## Running the Project
 
