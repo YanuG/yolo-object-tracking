@@ -1,0 +1,5 @@
+{
+    "tracker": "kcf",
+    "obj_disappear_thresh": 0,
+    "obj_teleport_threshold": 0.3
+}
