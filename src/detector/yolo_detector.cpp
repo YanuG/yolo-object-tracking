@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     // Get current dir
     std::string pathToDir = ros::package::getPath("yolo_object_tracking");
     // Sets a path to the configuration file 
-    std::string pathToJsonFile =  pathToDir + "/config/camera0_config.json";
+    std::string pathToJsonFile =  pathToDir + "/config/camera1_config.json";
     std::ifstream i(pathToJsonFile);
     nlohmann::json configFile;
     i >> configFile;

@@ -1,5 +1,8 @@
 <launch>
     <include file="$(find jetson_csi_cam)/jetson_csi_cam.launch">
     </include>
-    <node name="tracking1" pkg="yolo_object_tracking" type="yolo_object_tracking" output="screen" />
+	 <node name="tracking1" pkg="yolo_object_tracking" type="yolo_object_tracking" >	
+		</node>
+    <node name="tracker1" pkg="yolo_object_tracking" type="tracker.py" output="screen">	
+		</node>
 </launch>

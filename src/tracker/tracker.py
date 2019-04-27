@@ -49,7 +49,8 @@ class Tracker():
 		self.numCameras = self.settings.get('numCameras', 1)
 		self.screenWidth = self.settings.get('width', 416)
 		self.detectorTopic = self.settings.get('detectorTopic', "/detector_values_0")
-                self.handoff1 = self.settings.get('handoffTopic', "/handoff1")
+		self.handoffSub = self.settings.get('handoffTopicSub', "/handoff0")
+		self.handoffPub = self.settings.get('handoffTopicPub', "/handoff1")
 		# store the number of maximum consecutive frames a given
 		# object is allowed to be marked as "disappeared" until we
 		# need to deregister the object from tracking
@@ -59,10 +60,10 @@ class Tracker():
 		rospy.init_node('tracker', anonymous=True)
 		# when a message is sent to this topic it will call the update method 
 		rospy.Subscriber(self.detectorTopic, BoundingBoxesVector, self.update)
-                rospy.Subscriber(self.handoff1, BoundingBoxesVector, self.update)
+		rospy.Subscriber(self.handoffSub, BoundingBoxesVector, self.update)
 		# create publisher 
 		self.bridge = CvBridge()
-		self.pub = rospy.Publisher('/handoff0', BoundingBoxesVector, queue_size=1)
+		self.pub = rospy.Publisher(self.handoffPub, BoundingBoxesVector, queue_size=1)
 		self.image = None
 
 	def register(self, centroid, rect, objectUID):
@@ -77,7 +78,7 @@ class Tracker():
 		# tracker.init(self.image, roituple)
 		self.objectMetaData[objectUID] = [rect, tracker]
 		self.disappeared[objectUID] = 0
-		print("registered", objectUID)
+		print "registered " + str(objectUID)
 
 	def deregister(self, objectIndex):
 		# to deregister an object ID we delete the object ID from
@@ -90,7 +91,7 @@ class Tracker():
 			bVector.boundingBoxesVector.append(box)
 			bVector.feedID = self.cameraID		
 			self.pub.publish(bVector)
-			print ("deregistered/published", objectIndex)	
+			print "published " + str(objectIndex)	
 
 		del self.objects[objectIndex]
 		del self.disappeared[objectIndex]
@@ -103,7 +104,7 @@ class Tracker():
 		if(self.cameraID > rects.feedID): # feed came in from the left camera
 			incrementAmount = -(self.screenWidth*2)
 		elif(self.cameraID < rects.feedID): # feed came in from the right camera
-			incrementAmount = 2*self.screenWidth*2
+			incrementAmount = 2*self.screenWidthr*2
 		else: # feed came in from its own detector
 			incrementAmount = self.screenWidth*2	
 		
@@ -112,7 +113,6 @@ class Tracker():
 				objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3]
 			else:
 				objectUID = boundingBoxes.id
-				print('lol', objectUID)	
 		# check to see if the list of input bounding box rectangles
 		# is empty
 		if len(rects.boundingBoxesVector) == 0:
@@ -250,20 +250,20 @@ class Tracker():
 if __name__ == '__main__':
 	# get project path
 	rospack = rospkg.RosPack()
-	path = rospack.get_path('yolo_object_tracking') + "/config/camera0_config.json"
-	# put settings in json file 
+	path = rospack.get_path('yolo_object_tracking') + "/config/camera1_config.json"
 	with open(path, 'r') as trackerConfig:
 		data = trackerConfig.read()
 	settings = json.loads(data)
 	trackerSettings = {'tracker': settings["tracker"],
-                   'detectorTopic': settings["detectorTopic"],
-					    'obj_disappear_thresh': settings["obj_disappear_thresh"],
-					    'obj_teleport_threshold': settings["obj_teleport_threshold"], 
-					    'cameraID': settings["cameraID"],
-						 'width': settings["image"]["width"],
-						 'numCameras': settings["numCameras"],
+						'detectorTopic': settings["detectorTopic"],
+						'obj_disappear_thresh': settings["obj_disappear_thresh"],
+						'obj_teleport_threshold': settings["obj_teleport_threshold"], 
+						'cameraID': settings["cameraID"],
+						'width': settings["image"]["width"],
+						'numCameras': settings["numCameras"],
 						'detectorTopic':settings["detectorTopic"],
-                                                'handoffTopic':settings["handoffTopic"]
+						'handoffTopicPub':settings["handoffTopicPub"],
+						'handoffTopicSub':settings["handoffTopicSub"]
 
 	}
 
