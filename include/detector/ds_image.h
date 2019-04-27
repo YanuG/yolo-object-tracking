@@ -1,18 +1,14 @@
 /**
 MIT License
-
 Copyright (c) 2018 NVIDIA CORPORATION. All rights reserved.
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -38,9 +34,11 @@ public:
     int getImageHeight() const { return m_Height; }
     int getImageWidth() const { return m_Width; }
     cv::Mat getLetterBoxedImage() const { return m_LetterboxImage; }
-    // void addBBox(BBoxInfo box, const std::string& labelName);
-    // void showImage(int time) const;
-    // void saveImageJPEG(const std::string& dirPath) const;
+    cv::Mat getOriginalImage() const { return m_OrigImage; }
+    std::string getImageName() const { return m_ImageName; }
+    void addBBox(BBoxInfo box, const std::string& labelName);
+    void showImage(int time) const;
+    void saveImageJPEG(const std::string& dirPath) const;
 
 private:
     int m_Height;
@@ -49,6 +47,7 @@ private:
     int m_YOffset;
     float m_ScalingFactor;
     std::string m_ImagePath;
+    cv::RNG m_RNG;
     std::string m_ImageName;
     std::vector<BBoxInfo> m_Bboxes;
 
@@ -61,3 +60,4 @@ private:
 };
 
 #endif
+

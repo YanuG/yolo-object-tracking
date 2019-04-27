@@ -15,9 +15,8 @@
 /* ROS headers */
 #include "ros/ros.h"
 #include "yolo_object_tracking/BoundingBoxesVector.h"
-#include <cv_bridge/cv_bridge.h>
 #include <ros/package.h>
-#include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
 
 // header sequence number
 int counter = 0;
@@ -54,8 +53,6 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
     // create ROS messages 
     yolo_object_tracking::BoundingBoxes data;
     yolo_object_tracking::BoundingBoxesVector boxMsg;
-    sensor_msgs::Image img_msg;
-    cv_bridge::CvImage img_bridge;
     // loop throught detections 
     for (auto b : remaining) {
         if (configFile["displayPredicition"])
@@ -63,15 +60,18 @@ void cameraCallback(const sensor_msgs::ImageConstPtr& msg, nlohmann::json config
         // save bounding box and class name into ros message BoundingBoxes
         data.xmin = b.box.x1;  data.ymin = b.box.y1;  data.xmax = b.box.x2;  data.ymax = b.box.y2;  data.id = (*inferNet)->getClassName(b.label);
         boxMsg.boundingBoxesVector.push_back(data);
+        if (configFile["drawOnImage"])
+            // TODO - put in draw.py
+            dsImage.addBBox(b, (*inferNet)->getClassName(b.label));
     }
-	 boxMsg.feedID = configFile["cameraID"];
+    boxMsg.feedID = configFile["cameraID"];
     // convert image as a ROS message (sensor_msgs/Image)
     std_msgs::Header header; 
     header.seq = counter; 
-    header.stamp = ros::Time::now(); 
-    img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, image);
-    img_bridge.toImageMsg(img_msg);
-    boxMsg.image =  img_msg;    
+    header.stamp = ros::Time::now();  
+    // Display detection 
+    if (configFile["displayDetection"])
+        dsImage.showImage(1); 
     // Display time it take to tranfer image to GPU, anaylsis it and return image 
     if (configFile["displayInferenceTime"])
         std::cout << "Inference time : " << endTimer - beginTimer  << " s" << std::endl; 
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     // Get current dir
     std::string pathToDir = ros::package::getPath("yolo_object_tracking");
     // Sets a path to the configuration file 
-    std::string pathToJsonFile =  pathToDir + "/config/default_config.json";
+    std::string pathToJsonFile =  pathToDir + "/config/camera0_config.json";
     std::ifstream i(pathToJsonFile);
     nlohmann::json configFile;
     i >> configFile;

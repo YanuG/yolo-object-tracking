@@ -16,8 +16,6 @@ import json
 #for unique ids
 import uuid
 #for displaying
-sys.path.append('../drawer')
-from drawer import Draw
 import rospkg 
 
 class Tracker():
@@ -51,8 +49,7 @@ class Tracker():
 		self.numCameras = self.settings.get('numCameras', 1)
 		self.screenWidth = self.settings.get('width', 416)
 		self.detectorTopic = self.settings.get('detectorTopic', "/detector_values_0")
-		# drawer
-		self.drawer = Draw("Output Stream")
+                self.handoff1 = self.settings.get('handoffTopic', "/handoff1")
 		# store the number of maximum consecutive frames a given
 		# object is allowed to be marked as "disappeared" until we
 		# need to deregister the object from tracking
@@ -62,9 +59,11 @@ class Tracker():
 		rospy.init_node('tracker', anonymous=True)
 		# when a message is sent to this topic it will call the update method 
 		rospy.Subscriber(self.detectorTopic, BoundingBoxesVector, self.update)
+                rospy.Subscriber(self.handoff1, BoundingBoxesVector, self.update)
 		# create publisher 
 		self.bridge = CvBridge()
-		self.pub = rospy.Publisher('/feed'+str(self.cameraID), BoundingBoxesVector, queue_size=1)
+		self.pub = rospy.Publisher('/handoff0', BoundingBoxesVector, queue_size=1)
+		self.image = None
 
 	def register(self, centroid, rect, objectUID):
 		# when registering an object we use the next available object
@@ -100,9 +99,6 @@ class Tracker():
 	def update(self, rects):
 		# handles the callback function from ROS to change the coordinate of the bounding boxes according to which screen it came from
 		incrementAmount = 0
-		self.image = self.bridge.imgmsg_to_cv2(rects.image, "rgb8")  
-		self.drawer.setImage(self.image)
-		
 		# update the coordinates depending on which feed it came in from
 		if(self.cameraID > rects.feedID): # feed came in from the left camera
 			incrementAmount = -(self.screenWidth*2)
@@ -116,7 +112,7 @@ class Tracker():
 				objectUID = boundingBoxes.id + '-' + str(uuid.uuid4())[0:3]
 			else:
 				objectUID = boundingBoxes.id
-			
+				print('lol', objectUID)	
 		# check to see if the list of input bounding box rectangles
 		# is empty
 		if len(rects.boundingBoxesVector) == 0:
@@ -203,16 +199,17 @@ class Tracker():
 				objectID = objectIDs[row]
 				x1, y1 = self.objects[objectID][0], self.objects[objectID][1]
 				x2, y2 = inputCentroids[col][0],inputCentroids[col][1]
-				height, width, channels = self.image.shape
-				# print(f'height: {height}, width: {width}, ch: {channels}')
-				if math.hypot(x2-x1, y2-y1) < self.obj_teleport_threshold*(height+width)*0.5:
-					self.objects[objectID] = inputCentroids[col]
-					self.disappeared[objectID] = 0
+				if self.image is not None:
+					height, width, channels = 416, 416, 3
+					# print(f'height: {height}, width: {width}, ch: {channels}')
+					if math.hypot(x2-x1, y2-y1) < self.obj_teleport_threshold*(height+width)*0.5:
+						self.objects[objectID] = inputCentroids[col]
+						self.disappeared[objectID] = 0
 
-					# indicate that we have examined each of the row and
-					# column indexes, respectively
-					usedRows.add(row)
-					usedCols.add(col)
+						# indicate that we have examined each of the row and
+						# column indexes, respectively
+						usedRows.add(row)
+						usedCols.add(col)
 
 			# compute both the row and column index we have NOT yet
 			# examined
@@ -243,11 +240,6 @@ class Tracker():
 			else:
 				for col in unusedCols:
 					self.register(inputCentroids[col], rects.boundingBoxesVector[col], objectUID)
-	
-		for boundingBox , metaData in zip(rects.boundingBoxesVector , self.objectMetaData):
-			self.drawer.addBox(boundingBox.xmin, boundingBox.ymin, boundingBox.xmax, boundingBox.ymax, boundingBox.id)
-		
-		self.drawer.displayImage()
 
 
 	def rects_to_roi(self, rect):
@@ -258,7 +250,7 @@ class Tracker():
 if __name__ == '__main__':
 	# get project path
 	rospack = rospkg.RosPack()
-	path = rospack.get_path('yolo_object_tracking') + "/config/default_config.json"
+	path = rospack.get_path('yolo_object_tracking') + "/config/camera0_config.json"
 	# put settings in json file 
 	with open(path, 'r') as trackerConfig:
 		data = trackerConfig.read()
@@ -269,7 +261,10 @@ if __name__ == '__main__':
 					    'obj_teleport_threshold': settings["obj_teleport_threshold"], 
 					    'cameraID': settings["cameraID"],
 						 'width': settings["image"]["width"],
-						 'numCameras': settings["numCameras"]
+						 'numCameras': settings["numCameras"],
+						'detectorTopic':settings["detectorTopic"],
+                                                'handoffTopic':settings["handoffTopic"]
+
 	}
 
 	t = Tracker(
