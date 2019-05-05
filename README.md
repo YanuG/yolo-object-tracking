@@ -10,6 +10,7 @@
       
       Follow instructions in this [link](https://www.jetsonhacks.com/2017/03/27/robot-operating-system-ros-nvidia-jetson-tx2/) to install the ROS on Jetson TX2 
 
+      To install Python dependencies, enter "sudo pip2 install dependency_name"
 ## Setting up workspace 
 
 1. Create ros workspace. Follow instructions in this [tutoial](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Call your workspace ```catkin_ws```
