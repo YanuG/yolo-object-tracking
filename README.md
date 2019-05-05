@@ -9,9 +9,6 @@
   * ROS Kinetic 
       
       Follow instructions in this [link](https://www.jetsonhacks.com/2017/03/27/robot-operating-system-ros-nvidia-jetson-tx2/) to install the ROS on Jetson TX2 
-  * Tensorflow 
-      
-       ```pip install --extra-index-url https://developer.download.nvidia.com/compute/redist/jp33 tensorflow-gpu```
 
 ## Setting up workspace 
 
@@ -33,8 +30,4 @@
 
 2. Enable maximum clock speed. This is done in the home directory ``` ./jetson-clocks.sh```
 
-3. Run launch file ```roslaunch yolo_object_tracking default.launch```
-
-## Current Results
-
-Using TensorRT and Yolov3, Jetson has a framerate approximately 6 fps, this is double the current frame rate. 
+3. Run launch file ```roslaunch yolo_object_tracking cameraN.launch``` N represents the Jetson number within the coordinate system.  
