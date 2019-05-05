@@ -12,7 +12,7 @@
 
    *   json, cv2, numpy, scipy, Shapely.geometry, rospy
 
-      sudo pip2 install dependency_name
+      sudo pip install dependency_name
 ## Setting up workspace 
 
 1. Create ros workspace. Follow instructions in this [tutoial](http://wiki.ros.org/catkin/Tutorials/create_a_workspace). Call your workspace ```catkin_ws```
